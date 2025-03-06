@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\Admin; // Ensure this model exists
 use App\Models\User; // Assuming Employee is also a User
 
+
 class HiringProcessController extends Controller
 {
     /**
@@ -22,40 +23,25 @@ class HiringProcessController extends Controller
      */
     public function createHiringRequest(Request $request)
     {
-        // Validate incoming request
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'employer_id' => 'required|exists:users,id',
             'job_title' => 'required|string|max:255',
             'job_description' => 'required|string',
             'expected_start_date' => 'required|date',
-            'salary_offer' => 'required|numeric',
             'selected_employees' => 'required|array',
             'selected_employees.*' => 'required|exists:users,id',
             'success_url' => 'required|url',
             'cancel_url' => 'required|url',
             'employee_needed' => 'required|integer|min:1',  // Validate employee_needed
-
+            'hourly_rate' => 'required|numeric|min:0',      // New validation rule
+            'total_hours' => 'required|integer|min:0',      // New validation rule
+            'payable_amount' => 'required|numeric|min:0',   // New validation rule
         ]);
 
-        // Create the hiring request
-        $hiringRequest = HiringRequest::create([
-            'employer_id' => $request->input('employer_id'),
-            'job_title' => $request->input('job_title'),
-            'job_description' => $request->input('job_description'),
-            'expected_start_date' => $request->input('expected_start_date'),
-            'salary_offer' => $request->input('salary_offer'),
-            'employee_needed' => $request->input('employee_needed'),  // Store employee_needed
-            'status' => 'Prepaid',
-        ]);
-
-        // Attach selected employees to the hiring request
-        foreach ($request->input('selected_employees') as $employeeId) {
-            HiringSelection::create([
-                'hiring_request_id' => $hiringRequest->id,
-                'employee_id' => $employeeId,
-                'selection_note' => null, // Optionally set a default note
-            ]);
+        if ($validator->fails()) {
+            return jsonResponse(false, 'Validation errors occurred.', null, 400, ['errors' => $validator->errors()]);
         }
+
 
         // Get the total number of selected employees
         $totalEmployees = count($request->input('selected_employees'));
@@ -75,15 +61,46 @@ class HiringProcessController extends Controller
         // Calculate total cost based on the range and price per employee
         $totalHiringCost = $employeeHiringPrice->calculateTotalPrice($request->employee_needed);
 
+        // Calculate total_amount, due_amount, and paid_amount
+        $totalAmount = $totalHiringCost;
+        $paidAmount = $request->payable_amount;
+        $dueAmount = $totalAmount - $paidAmount;
+
+        // Create the hiring request
+        $hiringRequest = HiringRequest::create([
+            'employer_id' => $request->input('employer_id'),
+            'job_title' => $request->input('job_title'),
+            'job_description' => $request->input('job_description'),
+            'expected_start_date' => $request->input('expected_start_date'),
+            'salary_offer' => $request->hourly_rate,
+            'employee_needed' => $request->input('employee_needed'),  // Store employee_needed
+            'status' => 'Prepaid',
+
+            'hourly_rate' => $request->hourly_rate,         // New field
+            'total_hours' => $request->total_hours,         // New field
+            'paid_amount' => $paidAmount,                   // New field
+            'due_amount' => $dueAmount,                     // New field
+            'total_amount' => $totalAmount,                 // New field
+        ]);
+
+        // Attach selected employees to the hiring request
+        foreach ($request->input('selected_employees') as $employeeId) {
+            HiringSelection::create([
+                'hiring_request_id' => $hiringRequest->id,
+                'employee_id' => $employeeId,
+                'selection_note' => null, // Optionally set a default note
+            ]);
+        }
+
         // Payment data
         $paymentData = [
             'name' => $request->input('job_title'),
             'userid' => $request->input('employer_id'),
-            'amount' => $totalHiringCost,
+            'amount' => $paidAmount,
             'applicant_mobile' => '1234567890', // This should come from employer's data
-            'success_url' => $request->success_url, // Assuming no balance is used here
-            'cancel_url' => $request->cancel_url, // Assuming no balance is used here
-            'hiring_request_id' => $hiringRequest->id, // Send the hiring_request_id
+            'success_url' => $request->success_url,
+            'cancel_url' => $request->cancel_url,
+            'hiring_request_id' => $hiringRequest->id,
             'type' => "Hiring-Request"
         ];
 
@@ -97,6 +114,7 @@ class HiringProcessController extends Controller
             'paymentUrl' => $paymentUrl['session_url'],
         ], 201);
     }
+
 
 
     /**
@@ -261,21 +279,18 @@ class HiringProcessController extends Controller
      * @param string $step
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getRequestsByStepWithPagination(Request $request,$step)
+    public function getRequestsByStepWithPagination(Request $request, $step)
     {
-
         $perPage = $request->query('per_page', 10);
 
         $requests = HiringRequest::with([
-            'employer.servicesLookingFor',
-
+             'employer.servicesLookingFor',
             'selectedEmployees.employee.languages',
             'selectedEmployees.employee.certifications',
             'selectedEmployees.employee.skills',
             'selectedEmployees.employee.education',
             'selectedEmployees.employee.employmentHistory',
             'selectedEmployees.employee.resume',
-
 
             'hiringAssignments.employee.languages',
             'hiringAssignments.employee.certifications',
@@ -284,15 +299,20 @@ class HiringProcessController extends Controller
             'hiringAssignments.employee.employmentHistory',
             'hiringAssignments.employee.resume',
 
-
             'releasedHiringAssignments.employee.languages',
             'releasedHiringAssignments.employee.certifications',
             'releasedHiringAssignments.employee.skills',
             'releasedHiringAssignments.employee.education',
             'releasedHiringAssignments.employee.employmentHistory',
             'releasedHiringAssignments.employee.resume',
-
         ])->where('status', $step)->paginate($perPage); // Adjust pagination as needed
+
+        // Iterate through the requests and add the services_looking_for
+        // foreach ($requests as $requestItem) {
+        //     if ($requestItem->employer) {
+        //         $requestItem->employer->services_looking_for = $requestItem->employer->allServicesLookingFor();
+        //     }
+        // }
 
         return response()->json([
             'success' => true,
@@ -301,4 +321,5 @@ class HiringProcessController extends Controller
             'requests' => $requests,
         ], 200);
     }
+
 }

@@ -26,6 +26,15 @@ class Payment extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function employer()
+    {
+        return $this->belongsTo(User::class, 'userid');
+    }
+
+    public function hiringRequest()
+    {
+        return $this->belongsTo(HiringRequest::class, 'hiring_request_id');
+    }
 
     public function couponUsage()
     {

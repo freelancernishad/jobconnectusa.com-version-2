@@ -17,6 +17,11 @@ class HiringRequest extends Model
         'salary_offer',
         'status',
         'employee_needed',
+        'hourly_rate',        // New attribute
+        'total_hours',        // New attribute
+        'paid_amount',        // New attribute
+        'due_amount',         // New attribute
+        'total_amount',       // New attribute
     ];
 
     // Relationship with Employer (User)

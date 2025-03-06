@@ -188,28 +188,40 @@ class AdminUserController extends Controller
 
         // Apply role-based filters if a role is provided
         if ($role) {
+
+
+            // if ($role === 'EMPLOYEE') {
+            //     $query->where('role', 'EMPLOYEE')->where('status', 'active');
+            // } elseif ($role === 'EMPLOYER') {
+            //     $query->where('role', 'EMPLOYER')->where('employer_status', 'active');
+            // }
+
+
             if ($role === 'EMPLOYEE') {
-                $query->where('role', 'EMPLOYEE')->where('status', 'active');
+                $query->where('role', 'EMPLOYEE');
             } elseif ($role === 'EMPLOYER') {
-                $query->where('role', 'EMPLOYER')->where('employer_status', 'active');
+                $query->where('role', 'EMPLOYER');
             }
+
+
+
         } else {
             // If no role is specified, filter by active employees and employers
-            $query->where(function($q) {
-                $q->where(function($subQuery) {
-                    $subQuery->where('status', 'active')
-                             ->where('employer_status', 'inactive');
-                })->orWhere(function($subQuery) {
-                    $subQuery->where('status', 'inactive')
-                             ->where('employer_status', 'active');
-                })->orWhere(function($subQuery) {
-                    $subQuery->where('status', 'active')
-                             ->where('employer_status', 'active');
-                });
-            });
+            // $query->where(function($q) {
+            //     $q->where(function($subQuery) {
+            //         $subQuery->where('status', 'active')
+            //                  ->where('employer_status', 'inactive');
+            //     })->orWhere(function($subQuery) {
+            //         $subQuery->where('status', 'inactive')
+            //                  ->where('employer_status', 'active');
+            //     })->orWhere(function($subQuery) {
+            //         $subQuery->where('status', 'active')
+            //                  ->where('employer_status', 'active');
+            //     });
+            // });
         }
 
-
+        $query->whereNotNull('email_verified_at');
         // Get the service parameter for preferred job title filter (optional)
         $service = $request->query('service'); // This can be 1, 2, or 3
         // Apply preferred_job_title filter if service is provided

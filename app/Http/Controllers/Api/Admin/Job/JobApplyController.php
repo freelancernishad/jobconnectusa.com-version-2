@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin\Job;
 
 use App\Models\JobApply;
 use Illuminate\Http\Request;
+use App\Mail\JobApplicationMailUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\JobApplicationMail; // Create this Mailable
@@ -51,8 +52,8 @@ class JobApplyController extends Controller
          ];
 
          // Send the email
-         Mail::to('freelancernishad123@gmail.com') // Change to the recipient's email
-             ->send(new JobApplicationMail($data));
+         Mail::to($user->email) // Change to the recipient's email
+             ->send(new JobApplicationMailUser($data));
 
          return response()->json(['message' => 'Application sent successfully!']);
      }

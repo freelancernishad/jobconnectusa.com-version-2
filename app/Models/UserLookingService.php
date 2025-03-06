@@ -9,7 +9,7 @@ class UserLookingService extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'service_id'];
+    protected $fillable = ['user_id', 'service_id','service_title'];
 
     public function user()
     {
@@ -20,4 +20,18 @@ class UserLookingService extends Model
     {
         return $this->belongsTo(Service::class);
     }
+
+
+    // public function service()
+    // {
+    //     if (is_null($this->service_id)) {
+    //         return (object) [
+    //             'name' => $this->service_title,
+    //             'icon' => ''
+    //         ];
+    //     }
+
+    //     return $this->belongsTo(Service::class);
+    // }
+
 }
