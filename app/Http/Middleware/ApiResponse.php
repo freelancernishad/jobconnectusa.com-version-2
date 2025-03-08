@@ -17,10 +17,8 @@ class ApiResponse
      */
     public function handle(Request $request, Closure $next)
     {
-
         // Skip ApiResponse middleware for the /files/{path} route
         if ($request->is('files/*')) {
-
             return $next($request);
         }
 
@@ -34,33 +32,30 @@ class ApiResponse
 
             // Initialize the formatted response structure
             $formattedResponse = [
-                // 'encoded' => [
-                    'data' => $responseData,
-                    'isError' => false,
-                    'error' => null,
-                    'status_code' => $response->status(),
-                // ],
-                // 'jrn' => microtime(true) * 10000,
+                'data' => $responseData, // Default to the original response data
+                'isError' => false,
+                'error' => null,
+                'status_code' => $response->status(),
             ];
 
             // Check if the response status indicates an error (>=400)
             if ($response->status() >= 400) {
-                // $formattedResponse['encoded']['isError'] = true;
                 $formattedResponse['isError'] = true;
 
-                // Extract the error message from response data or use a default error message
-                $errorMessage = $responseData['error'] ?? 'An error occurred';
+                // Extract the first error message from response data
+                $errorMessage = $this->getFirstErrorMessage($responseData);
 
                 // Set the error details in the response structure
-                // $formattedResponse['encoded']['error'] = [
                 $formattedResponse['error'] = [
                     'code' => $response->status(),
                     'message' => Response::$statusTexts[$response->status()] ?? 'Unknown error',
                     'errMsg' => $errorMessage,
                 ];
 
+                // Clear the data field for error responses
+                $formattedResponse['data'] = [];
+
                 // Adjust status code if necessary
-                // $formattedResponse['encoded']['status_code'] = $response->status();
                 $formattedResponse['status_code'] = $response->status();
             }
 
@@ -70,5 +65,29 @@ class ApiResponse
 
         // If the response is not an instance of Response, return it as is
         return $response;
+    }
+
+    /**
+     * Extract the first error message from the response data.
+     *
+     * @param array $responseData
+     * @return string
+     */
+    private function getFirstErrorMessage(array $responseData): string
+    {
+        // Check if the response contains a specific 'error' key
+        if (isset($responseData['error'])) {
+            return $responseData['error'];
+        }
+
+        // Check if the response contains Laravel validation errors
+        if (isset($responseData['errors'])) {
+            // Flatten the errors array and return the first error message
+            $errors = array_values($responseData['errors']);
+            return $errors[0][0] ?? 'An error occurred';
+        }
+
+        // Default error message
+        return 'An error occurred';
     }
 }

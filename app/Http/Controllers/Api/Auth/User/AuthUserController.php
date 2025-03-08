@@ -36,15 +36,23 @@ class AuthUserController extends Controller
             return handleGoogleAuth($request);
         }
 
+        // Step 1: Basic validation (excluding unique:users for email)
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => 'required|string|email|max:255', // Remove unique:users here
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|string|in:employee,employer', // Validate role input
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 400);
+        }
+
+        // Step 2: Manual uniqueness check for email
+        if (User::where('email', $request->email)->exists()) {
+            return response()->json([
+                'error' => 'The email address you provided is already registered. Please use a different email or log in to your existing account.'
+            ], 400);
         }
 
         // Create the user
