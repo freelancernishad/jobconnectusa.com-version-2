@@ -122,15 +122,15 @@ class StripePaymentController extends Controller
         } catch (\UnexpectedValueException $e) {
             // Invalid payload
             Log::error('Invalid Payload: ', ['error' => $e->getMessage()]);
-            return jsonResponse(false, 'Invalid Payload', null, 400);
+            return jsonResponse(false, 'Invalid Payload', $e->getMessage(), 400);
         } catch (\Stripe\Exception\SignatureVerificationException $e) {
             // Invalid signature
             Log::error('Invalid Signature: ', ['error' => $e->getMessage()]);
-            return jsonResponse(false, 'Invalid Signature', null, 400);
+            return jsonResponse(false, 'Invalid Signature', $e->getMessage(), 400);
         } catch (\Exception $e) {
             // General exception handling
             Log::error('Webhook Error: ', ['error' => $e->getMessage()]);
-            return jsonResponse(false, 'Webhook Error', null, 400);
+            return jsonResponse(false, 'Webhook Error', $e->getMessage(), 400);
         }
 
         // Return a success response to acknowledge receipt of the webhook
