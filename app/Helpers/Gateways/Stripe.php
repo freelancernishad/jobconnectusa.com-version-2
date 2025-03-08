@@ -9,6 +9,7 @@ use App\Models\PackageAddon;
 use Stripe\Checkout\Session;
 use App\Models\UserPackageAddon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 function createStripeCheckoutSession(array $data): JsonResponse
 {
@@ -238,6 +239,7 @@ function createUserPackageAddons(int $userId, int $packageId, array $addonIds, $
 
 function stripe($array = [])
 {
+    Log::info($array);
     // Set Stripe API key
     Stripe::setApiKey(env('STRIPE_SECRET'));
 
@@ -252,7 +254,7 @@ function stripe($array = [])
     // Create a new payment record in the database
     $payment = Payment::create([
         'trxId' => $paymentIntent->id, // Use Stripe payment_intent as trxId
-        'userid' => $array['userid'] ?? null,
+        'user_id' => $array['userid'] ?? null,
         'hiring_request_id' => $array['hiring_request_id'] ?? null,
         'type' => $array['type'] ?? 'stripe',
         'amount' => $array['amount'] ?? 1,

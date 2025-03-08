@@ -87,7 +87,7 @@ class AdminUserController extends Controller
         $payment->update(['status' => 'approved']);
 
         // Activate the user
-        $user = User::find($payment->userid);
+        $user = User::find($payment->user_id);
         if ($user) {
             $user->update([
                 'status' => 'active',
@@ -132,7 +132,7 @@ class AdminUserController extends Controller
         }
 
         // Find the associated user
-        $user = User::find($payment->userid);
+        $user = User::find($payment->user_id);
 
         // If the user exists and their status is 'active'
         if ($user && $user->status === 'active') {
