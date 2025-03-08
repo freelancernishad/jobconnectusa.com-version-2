@@ -152,6 +152,7 @@ class StripePaymentController extends Controller
 
             // Check payment type and perform relevant actions
             if ($payment->type === 'activation') {
+                Log::info("updatePaymentStatus" , $payment);
                 // Call the activateUser function to activate the user
                 $this->activateUser($payment->userid);
             } elseif ($payment->hiring_request_id) {
@@ -196,6 +197,7 @@ class StripePaymentController extends Controller
 
     private function activateUser($userId)
     {
+        Log::info("activateUser" , $userId);
         // Find the profile by user ID
         $profile = Profile::where(['user_id'=> $userId,'profile_type'=>'employee'])->first();
 
