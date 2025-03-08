@@ -21,6 +21,9 @@ class ServiceController extends Controller
         ], 200);
     }
 
+    public function other_services(){
+        return otherPreferredJobTitle();
+    }
 
     // Get a single service by ID
     public function show($id)

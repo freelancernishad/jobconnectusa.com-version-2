@@ -11,7 +11,7 @@ class CreatePaymentsTable extends Migration
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable(); // For associating payment to a user
-            $table->string('gateway')->index(); // 'stripe' or 'paypal'
+            $table->string('gateway')->nullable(); // 'stripe' or 'paypal'
             $table->string('transaction_id')->unique(); // Unique transaction ID from Stripe/PayPal
             $table->string('currency', 3)->default('USD'); // Currency code (e.g., USD, EUR)
             $table->decimal('amount', 10, 2); // Amount charged

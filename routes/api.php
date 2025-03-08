@@ -2,23 +2,30 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Global\ServiceController;
+use App\Http\Controllers\Api\Global\SkillListController;
+use App\Http\Controllers\Api\Global\GlobalUserController;
 use App\Http\Controllers\Api\Server\ServerStatusController;
 use App\Http\Controllers\Api\User\Package\UserPackageController;
+use App\Http\Controllers\Api\Gateway\Stripe\StripePaymentController;
+use App\Http\Controllers\Api\SystemSettings\SystemSettingController;
+use App\Http\Controllers\Api\Admin\Hiring\EmployeeHiringPriceController;
 use App\Http\Controllers\Api\User\PackageAddon\UserPackageAddonController;
 
 // Load InitialRoutes
-if (file_exists($userRoutes = __DIR__.'InitialRoutes/example.php')) {
+if (file_exists($userRoutes = __DIR__.'/InitialRoutes/example.php')) {
     require $userRoutes;
 }
 
 
-if (file_exists($userRoutes = __DIR__.'InitialRoutes/users.php')) {
-    require $userRoutes;
+if (file_exists($userInitialRoutesRoutes = __DIR__.'/InitialRoutes/users.php')) {
+    require $userInitialRoutesRoutes;
 }
 
-if (file_exists($adminRoutes = __DIR__.'InitialRoutes/admins.php')) {
-    require $adminRoutes;
+if (file_exists($adminInitialRoutesRoutes = __DIR__.'/InitialRoutes/admins.php')) {
+    require $adminInitialRoutesRoutes;
 }
+// For web routes
+Route::get('/clear-cache', [SystemSettingController::class, 'clearCache']);
 
 
 
@@ -62,7 +69,44 @@ Route::prefix('global/')->group(function () {
 
 
     Route::get('services', [ServiceController::class, 'index']);
+    Route::get('/other/services', [ServiceController::class, 'other_services']);
     Route::get('services/{id}', [ServiceController::class, 'show']);
 
 
+
+
+    Route::get('skill-lists', [SkillListController::class, 'index']);
+    Route::post('add/skill-lists', [App\Http\Controllers\Api\Admin\SkillList\SkillListController::class, 'store']);
+    Route::get('skill-lists/{id}', [SkillListController::class, 'show']);
+    Route::get('services/{serviceId}/skill-lists', [SkillListController::class, 'listByService']);
+
+
+    Route::get('/global/users/filter', [GlobalUserController::class, 'filterUsers']);
+
+
+
+    Route::prefix('employee-hiring-prices')->group(function () {
+        Route::get('/', [EmployeeHiringPriceController::class, 'index']); // Get all records
+        Route::get('/{employeeHiringPrice}', [EmployeeHiringPriceController::class, 'show']); // Get a single record
+    });
+
+
+
+
+
 });
+
+
+
+
+
+Route::post('/stripe/create/payment', [StripePaymentController::class, 'createPayment']);
+Route::get('/stripe/confirm/payment', [StripePaymentController::class, 'paymentSuccess']);
+
+
+Route::post('stripe/webhook', [StripePaymentController::class, 'handleWebhook']);
+
+
+
+Route::get('/server-status', [ServerStatusController::class, 'checkStatus']);
+

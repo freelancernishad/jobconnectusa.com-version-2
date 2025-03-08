@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Str;
+use Tymon\JWTAuth\Contracts\JWTSubject;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Tymon\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject, MustVerifyEmail
 {
@@ -29,6 +30,7 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         'profile_picture',
         'stripe_customer_id',
         'active_profile',
+        'active_profile_id',
     ];
 
     /**
@@ -56,6 +58,51 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
     ];
 
 
+        /**
+     * Boot the model.
+     *
+     * @return void
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Generate a unique username before creating the user
+        static::creating(function ($user) {
+            $user->username = $user->generateUniqueUsername($user->email);
+        });
+    }
+
+    /**
+     * Generate a unique username based on the email.
+     *
+     * @param string $email
+     * @return string
+     */
+    protected function generateUniqueUsername($email)
+    {
+        // Extract the part before the @ symbol
+        $baseUsername = Str::before($email, '@');
+
+        // Remove special characters and spaces
+        $baseUsername = preg_replace('/[^a-zA-Z0-9_]/', '', $baseUsername);
+
+        // Ensure the username is unique
+        $username = $baseUsername;
+        $counter = 1;
+
+        while (self::where('username', $username)->exists()) {
+            $username = $baseUsername . $counter;
+            $counter++;
+        }
+
+        return $username;
+    }
+
+
+
+
+
 
       // Relationship with Profile
       public function profile()
@@ -66,7 +113,7 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
       // Get the active profile for the user
       public function activeProfile()
       {
-          return $this->belongsTo(Profile::class, 'active_profile');
+          return $this->belongsTo(Profile::class, 'active_profile_id');
       }
 
     /**

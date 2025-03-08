@@ -1,6 +1,6 @@
 <?php
 
-
+use App\Models\Profile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +16,7 @@ function handleGoogleAuth(Request $request)
     // Validate the access token
     $validator = Validator::make($request->all(), [
         'access_token' => 'required|string',
+        'role' => 'required|string|in:employee,employer', // Validate role input
     ]);
 
     if ($validator->fails()) {
@@ -45,19 +46,33 @@ function handleGoogleAuth(Request $request)
                 'email' => $userData['email'],
                 'password' => Hash::make(Str::random(16)), // Generate a random password
                 'email_verified_at' => now(),
+                'active_profile' => $request->role === 'employer' ? 'employer' : 'employee', // Set active_profile based on role
             ]);
-        }else{
-            $user->update(['email_verified_at'=> now()]);
+        } else {
+            // Update the user's email verification status and role if necessary
+            $user->update([
+                'email_verified_at' => now(),
+                'active_profile' => $request->role === 'employer' ? 'employer' : 'employee', // Update active_profile
+            ]);
         }
 
         // Authenticate the user
         Auth::login($user);
 
+
+        $step = 1;
+        $checkProfile = Profile::find($user->active_profile_id);
+        if($checkProfile){
+            $step = $checkProfile->step;
+        }
+
         // Custom payload data
         $payload = [
+            'username' => $user->username,
             'email' => $user->email,
             'name' => $user->name,
-            'category' => $user->category ?? 'default', // Assuming category might not be set for Google users
+            'active_profile' => $user->active_profile,
+            'step' => $step,
             'email_verified' => $user->hasVerifiedEmail(),
         ];
 

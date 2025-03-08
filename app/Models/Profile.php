@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use Laravel\Sanctum\HasApiTokens;
+
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Profile extends Model
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use  HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -31,16 +31,14 @@ class Profile extends Model
         'years_of_experience_in_the_industry',
         'preferred_work_state',
         'preferred_work_zipcode',
-        'years_of_experience_in_the_industry',
+        'your_experience',
+        'familiar_with_safety_protocols',
         'job_by',
         'activation_payment_made',
         'activation_payment_cancel',
-        'your_experience',
-        'familiar_with_safety_protocols',
         'resume',
         'status',
-        'step', // Add 'step' here
-        'status', // 'status' already exists, no change needed
+        'step',
         'profile_type',
     ];
 
@@ -51,6 +49,7 @@ class Profile extends Model
      */
     protected $casts = [
         'date_of_birth' => 'date',
+        'step' => 'integer',
     ];
 
     // Relationship with User

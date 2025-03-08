@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\Admin\Job;
 
-use App\Http\Controllers\Controller;
-use App\Models\Job;
+use App\Models\JobPosting;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 
 class JobController extends Controller
@@ -17,7 +17,7 @@ class JobController extends Controller
      */
     public function index()
     {
-        $jobs = Job::all();
+        $jobs = JobPosting::all();
         return jsonResponse(true, 'Jobs retrieved successfully', $jobs);
     }
 
@@ -29,7 +29,7 @@ class JobController extends Controller
      */
     public function show($id)
     {
-        $job = Job::find($id);
+        $job = JobPosting::find($id);
 
         if (!$job) {
             return jsonResponse(false, 'Job not found', null, Response::HTTP_NOT_FOUND);
@@ -96,7 +96,7 @@ class JobController extends Controller
         }
 
         // Create the job
-        $job = Job::create($data);
+        $job = JobPosting::create($data);
 
         return jsonResponse(true, 'Job created successfully', $job, Response::HTTP_CREATED);
     }
@@ -112,7 +112,7 @@ class JobController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $job = Job::find($id);
+        $job = JobPosting::find($id);
 
         if (!$job) {
             return jsonResponse(false, 'Job not found', null, Response::HTTP_NOT_FOUND);
@@ -152,7 +152,7 @@ class JobController extends Controller
      */
     public function destroy($id)
     {
-        $job = Job::find($id);
+        $job = JobPosting::find($id);
 
         if (!$job) {
             return jsonResponse(false, 'Job not found', null, Response::HTTP_NOT_FOUND);
@@ -171,7 +171,7 @@ class JobController extends Controller
      */
     public function changeStatus($id)
     {
-        $job = Job::find($id);
+        $job = JobPosting::find($id);
 
         if (!$job) {
             return jsonResponse(false, 'Job not found', null, Response::HTTP_NOT_FOUND);

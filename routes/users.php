@@ -13,6 +13,13 @@ use App\Http\Controllers\Api\User\UserManagement\UserController;
 use App\Http\Controllers\Api\Admin\Hiring\HiringProcessController;
 
 // Routes for authentication (login, register, logout, etc.)
+
+Route::post('/user/login', [AuthUserController::class, 'login']);
+Route::post('/user/check-token', [AuthUserController::class, 'checkToken']);
+Route::post('/user/register', [AuthUserController::class, 'register']);
+
+
+
 Route::prefix('auth/user')->group(function () {
     Route::post('login', [AuthUserController::class, 'login'])->name('login'); // User login
     Route::post('register', [AuthUserController::class, 'register']); // User registration
@@ -51,7 +58,7 @@ Route::prefix('user')->group(function () {
             Route::post('/', [MediaController::class, 'store']);
             Route::get('/', [MediaController::class, 'index']);
             Route::get('/{id}', [MediaController::class, 'show']);
-            Route::put('/{id}', [MediaController::class, 'update']);
+            Route::post('/{id}', [MediaController::class, 'update']);
             Route::delete('/{id}', [MediaController::class, 'destroy']);
         });
 
@@ -69,7 +76,7 @@ Route::prefix('user')->group(function () {
         Route::prefix('thumbnails')->group(function () {
             Route::get('/', [ThumbnailController::class, 'index']);
             Route::post('/', [ThumbnailController::class, 'store']);
-            Route::put('/{thumbnail}', [ThumbnailController::class, 'update']);
+            Route::post('/{thumbnail}', [ThumbnailController::class, 'update']);
             Route::delete('/{thumbnail}', [ThumbnailController::class, 'destroy']);
         });
 
@@ -85,9 +92,9 @@ Route::prefix('user')->group(function () {
         Route::post('job/apply', [JobApplyController::class, 'sendMail']);
 
         // User payment cancellation route
-        Route::prefix('user')->group(function () {
+
             Route::post('cancel/payment', [UserController::class, 'cancelPaymentByUserId']);
-        });
+
 
         // Example of user access with permissions
         Route::get('/user-access', function () {

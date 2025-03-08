@@ -6,11 +6,13 @@ use Carbon\Carbon;
 
 use App\Models\User;
 use App\Models\Payment;
+use App\Models\Profile;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Resources\ProfileResource;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
@@ -42,18 +44,17 @@ class UserController extends Controller
 
     public function registerStep2(Request $request)
     {
-        // Get the authenticated user via JWT
+        // Get the authenticated user
         $user = auth()->user();
 
-        // Check if the user exists
+        // Validate user existence and email verification
         if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => 'The user you are trying to access does not exist. Please check the user ID and try again.',
+                'message' => 'The user you are trying to access does not exist.',
             ], 404);
         }
 
-        // Check if the user's email is verified
         if (!$user->hasVerifiedEmail()) {
             return response()->json([
                 'success' => false,
@@ -65,16 +66,12 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'first_name' => 'nullable|string|max:255',
             'last_name' => 'nullable|string|max:255',
-            'phone_number' => [
-                'nullable',
-                'string',
-                'max:15',
-            ],
+            'phone_number' => 'nullable|string|max:15',
             'address' => 'nullable|string|max:255',
-            'date_of_birth' => 'nullable',
+            'date_of_birth' => 'nullable|date',
             'profile_picture' => 'nullable|string|max:255',
             'preferred_job_title' => 'nullable|string|max:255',
-            'is_other_preferred_job_title' => 'nullable',
+            'is_other_preferred_job_title' => 'nullable|boolean',
             'company_name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'years_of_experience_in_the_industry' => 'nullable|string',
@@ -101,15 +98,15 @@ class UserController extends Controller
             'education' => 'nullable|array',
             'education.*.school_name' => 'required_with:education|string|max:255',
             'education.*.qualifications' => 'required_with:education|string|max:255',
-            'education.*.start_date' => 'required_with:education',
-            'education.*.end_date' => 'nullable|after_or_equal:education.*.start_date',
+            'education.*.start_date' => 'required_with:education|date',
+            'education.*.end_date' => 'nullable|date|after_or_equal:education.*.start_date',
             'education.*.notes' => 'nullable|string',
 
             'employment_history' => 'nullable|array',
             'employment_history.*.company' => 'required_with:employment_history|string|max:255',
             'employment_history.*.position' => 'required_with:employment_history|string|max:255',
-            'employment_history.*.start_date' => 'required_with:employment_history',
-            'employment_history.*.end_date' => 'nullable|after_or_equal:employment_history.*.start_date',
+            'employment_history.*.start_date' => 'required_with:employment_history|date',
+            'employment_history.*.end_date' => 'nullable|date|after_or_equal:employment_history.*.start_date',
             'employment_history.*.responsibilities' => 'nullable|string',
 
             // Validation for UserLookingService
@@ -117,276 +114,273 @@ class UserController extends Controller
             'looking_services.*' => 'required|exists:services,id',
 
             'other_looking_services' => 'nullable|array',
-            'other_looking_services.*' => 'required|string|max:255'
-
-
+            'other_looking_services.*' => 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 400);
         }
 
-        $name = $request->first_name.' '.$request->last_name;
-        // Update the user's fields
-        $user->name = $name ?? $user->name;
-
-        $user->first_name = $request->first_name ?? $user->first_name;
-        $user->last_name = $request->last_name ?? $user->last_name;
-        $user->phone_number = $request->phone_number ?? $user->phone_number;
-        $user->address = $request->address ?? $user->address;
-        $user->date_of_birth = date("Y-m-d", strtotime($request->date_of_birth)) ?? date("Y-m-d", strtotime($user->date_of_birth));
-        $user->profile_picture = $request->profile_picture ?? $user->profile_picture;
-        $user->preferred_job_title = $request->preferred_job_title ?? $user->preferred_job_title;
-        $user->is_other_preferred_job_title = $request->is_other_preferred_job_title ?? $user->is_other_preferred_job_title;
-        $user->company_name = $request->company_name ?? $user->company_name;
-        $user->description = $request->description ?? $user->description;
-        $user->years_of_experience_in_the_industry = $request->years_of_experience_in_the_industry ?? $user->years_of_experience_in_the_industry;
-        $user->preferred_work_state = $request->preferred_work_state ?? $user->preferred_work_state;
-        $user->preferred_work_zipcode = $request->preferred_work_zipcode ?? $user->preferred_work_zipcode;
-        $user->your_experience = $request->your_experience ?? $user->your_experience;
-        $user->familiar_with_safety_protocols = $request->familiar_with_safety_protocols ?? $user->familiar_with_safety_protocols;
+        // Prepare profile data
+        $profileData = [
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'phone_number' => $request->phone_number,
+            'address' => $request->address,
+            'date_of_birth' => $request->date_of_birth ? date("Y-m-d", strtotime($request->date_of_birth)) : null,
+            'profile_picture' => $request->profile_picture,
+            'preferred_job_title' => $request->preferred_job_title,
+            'is_other_preferred_job_title' => $request->is_other_preferred_job_title,
+            'company_name' => $request->company_name,
+            'description' => $request->description,
+            'years_of_experience_in_the_industry' => $request->years_of_experience_in_the_industry,
+            'preferred_work_state' => $request->preferred_work_state,
+            'preferred_work_zipcode' => $request->preferred_work_zipcode,
+            'your_experience' => $request->your_experience,
+            'familiar_with_safety_protocols' => $request->familiar_with_safety_protocols,
+            'step' => 2, // Set step value to 2
+        ];
 
         // Handle resume upload
         if ($request->hasFile('resume')) {
-            $resumePath = $request->file('resume')->store('resumes', 'protected'); // Store resume in protected storage
-            $user->resume = $resumePath;
+            $resumePath = $request->file('resume')->store('resumes', 'protected');
+            $profileData['resume'] = $resumePath;
+        }
+        $active_profile = $user->active_profile;
+
+        if($active_profile=='employer'){
+            $profileData['status'] = 'active';
         }
 
 
-
-
-        // Role-based status updates
-        if ($user->role === 'EMPLOYER') {
-            // Update only employer_status for EMPLOYER
-            $user->employer_status = 'active';
-            $user->employer_step = 2; // Update employer step if needed
+        if ($user->active_profile_id === null) {
+            // If active_profile_id is null, create a new profile
+            $profileData['profile_type'] = $active_profile;
+            $profile = $user->profile()->create($profileData);
+            $user->active_profile_id = $profile->id;
+            $user->save();
         } else {
-            // Update status for non-EMPLOYER roles (like EMPLOYEE)
-            $user->status = $request->status ?? $user->status;
-               // Update step
-            $user->step = 2; // Set step value to 2
+            // If active_profile_id is not null, check if the profile exists
+            $profile = Profile::find($user->active_profile_id);
 
+            if (!$profile) {
+                // If the profile doesn't exist, create a new one
+                $profileData['profile_type'] = $active_profile;
+                $profile = $user->profile()->create($profileData);
+                $user->active_profile_id = $profile->id;
+                $user->save();
+            } else {
+                // If the profile exists, update it
+                $profile->update($profileData);
+            }
         }
 
-        // Save the user
-        $user->save();
 
-        // Update related models: languages, certifications, skills, education, etc.
+
+
+        // Update related models
+        $this->updateRelatedModels($user, $request);
+        $profile =  new ProfileResource($profile);
+
+        return response()->json($profile);
+    }
+
+    /**
+     * Update related models for the profile.
+     *
+     * @param Profile $profile
+     * @param Request $request
+     */
+    private function updateRelatedModels(User $user, Request $request)
+    {
+        // Update languages
         if ($request->has('languages')) {
-            foreach ($request->languages as $languageData) {
-                $language = $user->languages()->updateOrCreate(
-                    ['id' => $languageData['id'] ?? null],
-                    [
-                        'language' => $languageData['language'],
-                        'level' => $languageData['level'],
-                    ]
-                );
-            }
+            $user->languages()->delete();
+            $user->languages()->createMany($request->languages);
         }
 
+        // Update certifications
         if ($request->has('certifications')) {
-            foreach ($request->certifications as $certificationData) {
-                $certification = $user->certifications()->updateOrCreate(
-                    ['id' => $certificationData['id'] ?? null],
-                    [
-                        'name' => $certificationData['name'],
-                        'certified_from' => $certificationData['certified_from'],
-                        'year' => $certificationData['year'],
-                    ]
-                );
-            }
+            $user->certifications()->delete();
+            $user->certifications()->createMany($request->certifications);
         }
 
+        // Update skills
         if ($request->has('skills')) {
-            foreach ($request->skills as $skillData) {
-                $skill = $user->skills()->updateOrCreate(
-                    ['id' => $skillData['id'] ?? null],
-                    [
-                        'name' => $skillData['name'],
-                        'level' => $skillData['level'],
-                    ]
-                );
-            }
+            $user->skills()->delete();
+            $user->skills()->createMany($request->skills);
         }
 
+        // Update education
         if ($request->has('education')) {
-            foreach ($request->education as $educationData) {
-                $education = $user->education()->updateOrCreate(
-                    ['id' => $educationData['id'] ?? null],
-                    [
-                        'school_name' => $educationData['school_name'],
-                        'qualifications' => $educationData['qualifications'],
-                        'start_date' => date("Y-m-d", strtotime($educationData['start_date'])),
-                        'end_date' => date("Y-m-d", strtotime($educationData['end_date'])),
-                        'notes' => $educationData['notes'],
-                    ]
-                );
-            }
+            $user->education()->delete();
+            $user->education()->createMany($request->education);
         }
 
+        // Update employment history
         if ($request->has('employment_history')) {
-            foreach ($request->employment_history as $employmentData) {
-                $employment = $user->employmentHistory()->updateOrCreate(
-                    ['id' => $employmentData['id'] ?? null],
-                    [
-                        'company' => $employmentData['company'],
-                        'position' => $employmentData['position'],
-                        'start_date' => date("Y-m-d", strtotime($employmentData['start_date'])),
-                        'end_date' => date("Y-m-d", strtotime($employmentData['end_date'])),
-                        'responsibilities' => $employmentData['responsibilities'],
-                    ]
-                );
-            }
+            $user->employmentHistory()->delete();
+            $user->employmentHistory()->createMany($request->employment_history);
         }
 
         // Update looking services
         if ($request->has('looking_services') || $request->has('other_looking_services')) {
-            // Delete existing looking services for this user
             $user->lookingServices()->delete();
 
-            // Handle `looking_services` with `service_id`
             if ($request->has('looking_services')) {
-                foreach ($request->looking_services as $serviceId) {
-                    $user->lookingServices()->create([
-                        'service_id' => $serviceId,
-                    ]);
-                }
+                $user->lookingServices()->createMany(array_map(fn($id) => ['service_id' => $id], $request->looking_services));
             }
 
-            // Handle `other_looking_services` with `service_title`
             if ($request->has('other_looking_services')) {
-                foreach ($request->other_looking_services as $serviceTitle) {
-                    $user->lookingServices()->create([
-                        'service_title' => $serviceTitle,
-                    ]);
-                }
+                $user->lookingServices()->createMany(array_map(fn($title) => ['service_title' => $title], $request->other_looking_services));
             }
         }
-
-
-
-
-
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Profile updated successfully!',
-            'user' => $user,
-        ]);
     }
-
 
 
     public function registerStep3(Request $request)
-{
-    $user = Auth::user();
+    {
+        // Get the authenticated user
+        $user = auth()->user();
 
-    // Check if user is authenticated
-    if (!$user) {
-        return response()->json([
-            'success' => false,
-            'message' => 'User is not authenticated. Please log in and try again.',
-        ], 401);
-    }
-
-    // Check if user status is inactive
-    if ($user->status !== 'inactive') {
-        return response()->json([
-            'success' => false,
-            'message' => 'The user is already active and does not need to complete this step again.',
-        ], 400);
-    }
-
-    // Check user step
-    if ($user->step === 1) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Please complete Step 2 before proceeding to the payment process.',
-        ], 400);
-    }
-
-    if ($user->step !== 2) {
-        return response()->json([
-            'success' => false,
-            'message' => 'The user is in an unexpected state. Please contact support for assistance.',
-        ], 400);
-    }
-
-    // Check if payment has already been made
-    if ($user->activation_payment_made) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Activation payment has already been processed for this user. Please contact the admin for further assistance.',
-        ], 400);
-    }
-
-    // Retrieve the payment method from the request
-    $paymentMethod = $request->input('payment_method', 'cash'); // Default to 'cash' if no method provided
-
-    if ($paymentMethod === 'card') {
-        // Payment data for card
-        $paymentData = [
-            'name' => $user->name,
-            'userid' => $user->id,
-            'amount' => 100, // Assuming fixed payment amount for this case
-            'applicant_mobile' => '1234567890', // This should come from employer's data
-            'success_url' => $request->input('success_url'),
-            'cancel_url' => $request->input('cancel_url'),
-            'type' => "activation"
-        ];
-
-        // Trigger the Stripe payment and get the redirect URL
-        try {
-            $paymentUrl = stripe($paymentData);
-            $user->update(['activation_payment_made' => false, 'activation_payment_cancel' => false]);
-            return response()->json([
-                'success' => true,
-                'message' => 'Redirect to payment',
-                'payment_url' => $paymentUrl['session_url'],
-                'payment' => $paymentUrl['payment']
-            ]);
-        } catch (\Exception $e) {
+        // Check if user is authenticated
+        if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while processing the card payment: ' . $e->getMessage(),
-            ], 500);
+                'message' => 'User is not authenticated. Please log in and try again.',
+            ], 401);
         }
-    } else if ($paymentMethod === 'cash') {
-        // Execute existing code for cash payments
-        try {
-            $paymentResponse = createPayment(100);
 
-            // Ensure paymentResponse is an array and contains 'success' key
-            if (is_array($paymentResponse) && isset($paymentResponse['success'])) {
-                if ($paymentResponse['success']) {
-                    // Update user to indicate that payment has been made
-                    $user->update(['activation_payment_made' => true, 'activation_payment_cancel' => false]);
-                    return response()->json($paymentResponse);
+        // Check if the user has an active profile
+        if ($user->active_profile_id === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No active profile found. Please complete Step 2 first.',
+            ], 400);
+        }
+
+        // Retrieve the active profile
+        $profile = Profile::find($user->active_profile_id);
+       
+
+        // Check if the profile exists
+        if (!$profile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Active profile not found. Please complete Step 2 first.',
+            ], 400);
+        }
+
+        // Check if user status is inactive
+        if ($profile->status !== 'inactive') {
+            return response()->json([
+                'success' => false,
+                'message' => 'The user is already active and does not need to complete this step again.',
+            ], 400);
+        }
+
+        // Check user step
+        if ($profile->step === 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please complete Step 2 before proceeding to the payment process.',
+            ], 400);
+        }
+
+        if ($profile->step !== 2) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The user is in an unexpected state. Please contact support for assistance.',
+            ], 400);
+        }
+
+        // Check if payment has already been made
+        if ($profile->activation_payment_made) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Activation payment has already been processed for this user. Please contact the admin for further assistance.',
+            ], 400);
+        }
+
+        // Validate the payment method
+        $validator = Validator::make($request->all(), [
+            'payment_method' => 'required|string|in:card,cash', // Only allow 'card' or 'cash'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // Retrieve the payment method from the request
+        $paymentMethod = $request->input('payment_method');
+
+        if ($paymentMethod === 'card') {
+            // Payment data for card
+            $paymentData = [
+                'name' => $user->name,
+                'userid' => $user->id,
+                'amount' => 100, // Assuming fixed payment amount for this case
+                'applicant_mobile' => '1234567890', // This should come from employer's data
+                'success_url' => $request->input('success_url'),
+                'cancel_url' => $request->input('cancel_url'),
+                'type' => "activation"
+            ];
+
+            // Trigger the Stripe payment and get the redirect URL
+            try {
+                $paymentUrl = stripe($paymentData);
+                $profile->update(['activation_payment_made' => false, 'activation_payment_cancel' => false]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Redirect to payment',
+                    'payment_url' => $paymentUrl['session_url'],
+                    'payment' => $paymentUrl['payment']
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while processing the card payment: ' . $e->getMessage(),
+                ], 500);
+            }
+        } else if ($paymentMethod === 'cash') {
+            // Execute existing code for cash payments
+            try {
+                $paymentResponse = createPayment(100);
+
+                // Ensure paymentResponse is an array and contains 'success' key
+                if (is_array($paymentResponse) && isset($paymentResponse['success'])) {
+                    if ($paymentResponse['success']) {
+                        // Update profile to indicate that payment has been made
+                        $profile->update(['activation_payment_made' => true, 'activation_payment_cancel' => false]);
+                        return response()->json($paymentResponse);
+                    } else {
+                        return response()->json([
+                            'success' => false,
+                            'message' => $paymentResponse['message'] ?? 'Payment creation failed. Please try again later or contact support if the problem persists.',
+                        ], 500);
+                    }
                 } else {
                     return response()->json([
                         'success' => false,
-                        'message' => $paymentResponse['message'] ?? 'Payment creation failed. Please try again later or contact support if the problem persists.',
+                        'message' => 'Invalid payment response format. Please try again later or contact support if the problem persists.',
                     ], 500);
                 }
-            } else {
+            } catch (\Exception $e) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid payment response format. Please try again later or contact support if the problem persists.',
+                    'message' => 'An error occurred while processing the payment: ' . $e->getMessage(),
                 ], 500);
             }
-        } catch (\Exception $e) {
+        } else {
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while processing the payment: ' . $e->getMessage(),
-            ], 500);
+                'message' => 'Invalid payment method selected. Please choose either "card" or "cash".',
+            ], 400);
         }
-    } else {
-        return response()->json([
-            'success' => false,
-            'message' => 'Invalid payment method selected. Please choose either "card" or "cash".',
-        ], 400);
     }
-}
 
 
 

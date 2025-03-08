@@ -3,17 +3,18 @@
 namespace App\Http\Controllers\Api\Auth\User;
 
 use App\Models\User;
+use App\Models\Profile;
 use App\Mail\VerifyEmail;
 use Illuminate\Support\Str;
+
 use Illuminate\Http\Request;
-
 use App\Mail\OtpNotification;
+
+
 use App\Models\TokenBlacklist;
-
-
 use Tymon\JWTAuth\Facades\JWTAuth;
-use App\Http\Controllers\Controller;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -31,10 +32,15 @@ class AuthUserController extends Controller
      */
     public function register(Request $request)
     {
+        if ($request->access_token) {
+            return handleGoogleAuth($request);
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
+            'role' => 'required|string|in:employee,employer', // Validate role input
         ]);
 
         if ($validator->fails()) {
@@ -46,6 +52,7 @@ class AuthUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'active_profile' => $request->role === 'employer' ? 'employer' : 'employee', // Set active_profile based on role
         ]);
 
         // Generate a JWT token for the newly created user
@@ -59,28 +66,34 @@ class AuthUserController extends Controller
         $verify_url = $request->verify_url ?? null; // Optional verify URL from the request
 
         // Notify user for email verification
-        if ($verify_url) {
-            Mail::to($user->email)->send(new VerifyEmail($user, $verify_url));
-        }else{
-            // Generate a 6-digit numeric OTP
-            $otp = random_int(100000, 999999); // Generate OTP
-            $user->otp = Hash::make($otp); // Store hashed OTP
-            $user->otp_expires_at = now()->addMinutes(5); // Set OTP expiration time
-            $user->save();
+        try {
+            if ($verify_url) {
+                Mail::to($user->email)->send(new VerifyEmail($user, $verify_url));
+            } else {
+                // Generate a 6-digit numeric OTP
+                $otp = random_int(100000, 999999); // Generate OTP
+                $user->otp = Hash::make($otp); // Store hashed OTP
+                $user->otp_expires_at = now()->addMinutes(5); // Set OTP expiration time
+                $user->save();
 
-            // Notify user with the OTP
-            Mail::to($user->email)->send(new OtpNotification($otp));
+                // Notify user with the OTP
+                Mail::to($user->email)->send(new OtpNotification($otp));
+            }
+        } catch (\Exception $e) {
+            // Log the email sending error
+            \Log::error('Email sending failed: ' . $e->getMessage());
 
+            // Optionally, you can notify the admin or take other actions here
         }
-
-
 
         // Define payload data
         $payload = [
+            'username' => $user->username,
             'email' => $user->email,
             'name' => $user->name,
-            'category' => $user->category ?? null, // Include category if applicable
-            'email_verified' => $user->hasVerifiedEmail(), // Check verification status
+            'active_profile' => $user->active_profile,
+            'step' => 1,
+            'email_verified' => $user->hasVerifiedEmail(),
         ];
 
         return response()->json([
@@ -97,55 +110,80 @@ class AuthUserController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function login(Request $request)
-    {
-
-
-        if($request->access_token){
-
-            return handleGoogleAuth($request);
-        }
-
-
-
-
-
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $credentials = $request->only('email', 'password');
-
-        if (Auth::attempt($credentials)) {
-            $user = Auth::user();
-
-            // Custom payload data, including email verification status
-            $payload = [
-                'email' => $user->email,
-                'name' => $user->name,
-                'category' => $user->category,
-                'email_verified' => $user->hasVerifiedEmail(), // Checks verification status
-            ];
-
-            try {
-                // Generate a JWT token with custom claims
-                $token = JWTAuth::fromUser($user, ['guard' => 'user']);
-            } catch (JWTException $e) {
-                return response()->json(['error' => 'Could not create token'], 500);
-            }
-
-            return response()->json([
-                'token' => $token,
-                'user' => $payload,
-            ], 200);
-        }
-
-        return response()->json(['message' => 'Invalid credentials'], 401);
+{
+    // Handle Google Auth if access_token is provided
+    if ($request->access_token) {
+        return handleGoogleAuth($request);
     }
+
+    // Validate the request data
+    $validator = Validator::make($request->all(), [
+        'email' => 'required|string|email',
+        'password' => 'required|string',
+        'role' => 'required|string|in:employee,employer', // Validate role
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
+    }
+
+    // Attempt to authenticate the user
+    $credentials = $request->only('email', 'password');
+
+    if (Auth::attempt($credentials)) {
+        $user = Auth::user();
+
+        // Update active_profile based on role
+        if ($request->role === 'employee') {
+            $user->active_profile = 'employee';
+        } elseif ($request->role === 'employer') {
+            $user->active_profile = 'employer';
+        }
+
+
+        // Determine the step based on the active profile
+        $step = 1;
+        $checkProfile = Profile::where(['profile_type'=>$user->active_profile])->first();
+
+        // return response()->json($checkProfile);
+
+        if ($checkProfile) {
+            $step = (int)$checkProfile->step;
+            $user->active_profile_id = $checkProfile->id;
+            $checkProfileStatus = $checkProfile->status;
+        }else{
+            $active_profile_id = null;
+            $user->active_profile_id = $active_profile_id;
+            $checkProfileStatus = 'inactive';
+        }
+        $user->save();
+        // Custom payload data, including email verification status
+        $payload = [
+            'username' => $user->username,
+            'email' => $user->email,
+            'name' => $user->name,
+            'active_profile' => $user->active_profile,
+            'active_profile_id' => $user->active_profile_id,
+            'step' => $step,
+            'status' => $checkProfileStatus,
+            'email_verified' => $user->hasVerifiedEmail(),
+        ];
+
+        try {
+            // Generate a JWT token with custom claims
+            $token = JWTAuth::fromUser($user, ['guard' => 'user']);
+        } catch (JWTException $e) {
+            return response()->json(['error' => 'Could not create token'], 500);
+        }
+
+        return response()->json([
+            'token' => $token,
+            'user' => $payload,
+        ], 200);
+    }
+
+    return response()->json(['message' => 'Invalid credentials'], 401);
+}
 
 
 

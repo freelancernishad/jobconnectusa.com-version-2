@@ -19,11 +19,12 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('email_verification_hash')->nullable();
             $table->string('otp')->nullable();
-            $table->timestamp('otp_expires_at');
+            $table->timestamp('otp_expires_at')->nullable();
             $table->string('profile_picture')->nullable();
             $table->string('password');
             $table->string('stripe_customer_id')->nullable()->comment('Stripe customer ID for payments');
-            $table->foreignId('active_profile')->nullable()->constrained('profiles');
+            $table->string('active_profile')->nullable();
+            $table->unsignedBigInteger('active_profile_id')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
