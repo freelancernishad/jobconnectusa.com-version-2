@@ -57,8 +57,8 @@ Route::prefix('user')->group(function () {
     Route::middleware(AuthenticateUser::class)->group(function () {
 
         // User registration steps
-        Route::post('/user/register/step2', [UserController::class, 'registerStep2']);
-        Route::post('/user/register/step3', [UserController::class, 'registerStep3']);
+        Route::post('/register/step2', [UserController::class, 'registerStep2']);
+        Route::post('/register/step3', [UserController::class, 'registerStep3']);
 
         // Fetch user data by username and update profile by token
         Route::get('/user/{username}', [UserController::class, 'getUserByUsername']);
