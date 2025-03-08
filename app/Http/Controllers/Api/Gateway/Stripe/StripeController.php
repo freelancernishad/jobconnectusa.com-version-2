@@ -93,7 +93,7 @@ class StripeController extends Controller
                                 $userPackage = UserPackage::updateOrCreate(
                                     ['id' => $payment->user_package_id], // Use the user_package_id if it exists
                                     [
-                                        'user_id' => $payment->user_id,
+                                        'user_id' => $payment->userid,
                                         'package_id' => $payment->payable_id,
                                         'business_name' => $payment->business_name,
                                         'started_at' => now(),

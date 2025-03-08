@@ -153,7 +153,7 @@ class StripePaymentController extends Controller
             // Check payment type and perform relevant actions
             if ($payment->type === 'activation') {
                 // Call the activateUser function to activate the user
-                $this->activateUser($payment->user_id);
+                $this->activateUser($payment->userid);
             } elseif ($payment->hiring_request_id) {
                 // Check if payment has a related hiring request
                 $hiringRequest = HiringRequest::find($payment->hiring_request_id);
