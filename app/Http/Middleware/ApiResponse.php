@@ -87,6 +87,11 @@ class ApiResponse
             return $errors[0][0] ?? 'An error occurred';
         }
 
+        // Check if the response contains a 'message' key
+        if (isset($responseData['message'])) {
+            return $responseData['message'];
+        }
+
         // Default error message
         return 'An error occurred';
     }
