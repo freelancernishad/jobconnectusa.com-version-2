@@ -77,7 +77,7 @@ class AuthUserController extends Controller
                 $user->save();
 
                 // Notify user with the OTP
-                Mail::to($user->email)->send(new OtpNotification($otp));
+                Mail::to($user->email)->send(new OtpNotification($user,$otp));
             }
         } catch (\Exception $e) {
             // Log the email sending error
@@ -143,7 +143,7 @@ class AuthUserController extends Controller
 
         // Determine the step based on the active profile
         $step = 1;
-        $checkProfile = Profile::where(['profile_type'=>$user->active_profile])->first();
+        $checkProfile = Profile::where(['user_id'=>$user->id,'profile_type'=>$user->active_profile])->first();
 
         // return response()->json($checkProfile);
 

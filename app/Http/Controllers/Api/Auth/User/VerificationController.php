@@ -3,16 +3,17 @@
 namespace App\Http\Controllers\Api\Auth\User;
 
 use App\Models\User;
+use App\Models\Profile;
 use App\Mail\VerifyEmail;
-use Illuminate\Support\Str;
 
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Mail\OtpNotification;
 use Illuminate\Routing\Controller;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Log;
-use App\Mail\RegistrationSuccessful;
 
+use App\Mail\RegistrationSuccessful;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -94,6 +95,32 @@ class VerificationController extends Controller
             if ($user->hasVerifiedEmail()) {
                 // Generate a new token for the user
                 $token = JWTAuth::fromUser($user);
+
+
+                $step = 1;
+                $checkProfile = Profile::where(['user_id'=>$user->id,'profile_type'=>$user->active_profile])->first();
+
+                // return response()->json($checkProfile);
+
+                if ($checkProfile) {
+                    $step = (int)$checkProfile->step;
+                    $checkProfileStatus = $checkProfile->status;
+                }else{
+                    $checkProfileStatus = 'inactive';
+                }
+
+                $payload = [
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'name' => $user->name,
+                    'active_profile' => $user->active_profile,
+                    'active_profile_id' => $user->active_profile_id,
+                    'step' => $step,
+                    'status' => $checkProfileStatus,
+                    'email_verified' => $user->hasVerifiedEmail(),
+                ];
+
+
 
                 return response()->json([
                     'message' => 'Email already verified.',

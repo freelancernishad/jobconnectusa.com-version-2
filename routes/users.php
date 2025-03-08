@@ -8,15 +8,33 @@ use App\Http\Controllers\Api\Admin\Job\JobApplyController;
 use App\Http\Controllers\Api\Auth\User\AuthUserController;
 use App\Http\Controllers\Api\User\Resume\ResumeController;
 use App\Http\Controllers\Global\BrowsingHistoryController;
+use App\Http\Controllers\Api\Auth\User\VerificationController;
 use App\Http\Controllers\Api\User\Thumbnail\ThumbnailController;
 use App\Http\Controllers\Api\User\UserManagement\UserController;
 use App\Http\Controllers\Api\Admin\Hiring\HiringProcessController;
+use App\Http\Controllers\Api\Auth\User\UserPasswordResetController;
 
 // Routes for authentication (login, register, logout, etc.)
 
 Route::post('/user/login', [AuthUserController::class, 'login']);
 Route::post('/user/check-token', [AuthUserController::class, 'checkToken']);
 Route::post('/user/register', [AuthUserController::class, 'register']);
+
+
+
+
+// Password reset routes
+Route::post('user/password/email', [UserPasswordResetController::class, 'sendResetLinkEmail']);
+Route::post('user/password/reset', [UserPasswordResetController::class, 'reset']);
+
+
+
+Route::post('/verify-otp', [VerificationController::class, 'verifyOtp']);
+Route::post('/resend/otp', [VerificationController::class, 'resendOtp']);
+Route::get('/email/verify/{hash}', [VerificationController::class, 'verifyEmail']);
+Route::post('/resend/verification-link', [VerificationController::class, 'resendVerificationLink']);
+
+
 
 
 
