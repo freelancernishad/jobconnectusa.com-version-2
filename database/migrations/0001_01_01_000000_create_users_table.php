@@ -30,7 +30,7 @@ return new class extends Migration
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
+            $table->string('email')->unique(); // Use unique() instead of primary()
             $table->string('token')->nullable();
             $table->timestamp('created_at')->nullable();
         });
