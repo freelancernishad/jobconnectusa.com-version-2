@@ -71,102 +71,92 @@ class VerificationController extends Controller
 
 
     public function verifyOtp(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
-            'otp' => 'required|digits:6', // Validate OTP as 6 digits
-        ]);
+{
+    // Validate the request
+    $validator = Validator::make($request->all(), [
+        'email' => 'required|email|exists:users,email',
+        'otp' => 'required|digits:6', // Validate OTP as 6 digits
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 400);
-        }
-
-        // Find the user by email
-        $user = User::where('email', $request->email)->first();
-
-        // Check if the OTP has expired
-        if ($user->otp_expires_at < now()) {
-            return response()->json(['error' => 'OTP has expired'], 400);
-        }
-
-        // Check if the provided OTP matches the stored OTP
-        if (Hash::check($request->otp, $user->otp)) {
-            // Check if the email is already verified
-            if ($user->hasVerifiedEmail()) {
-                // Generate a new token for the user
-                $token = JWTAuth::fromUser($user);
-
-
-                $step = 1;
-                $checkProfile = Profile::where(['user_id'=>$user->id,'profile_type'=>$user->active_profile])->first();
-
-                // return response()->json($checkProfile);
-
-                if ($checkProfile) {
-                    $step = (int)$checkProfile->step;
-                    $checkProfileStatus = $checkProfile->status;
-                }else{
-                    $checkProfileStatus = 'inactive';
-                }
-
-                $payload = [
-                    'username' => $user->username,
-                    'email' => $user->email,
-                    'name' => $user->name,
-                    'active_profile' => $user->active_profile,
-                    'active_profile_id' => $user->active_profile_id,
-                    'step' => $step,
-                    'status' => $checkProfileStatus,
-                    'email_verified' => $user->hasVerifiedEmail(),
-                ];
-
-
-
-                return response()->json([
-                    'message' => 'Email already verified.',
-                    'user' => [
-                        'email' => $user->email,
-                        'name' => $user->name,
-                        'username' => $user->username,
-                        'step' => $user->step,
-                        'email_verified' => true, // Email was already verified
-                    ],
-                    'token' => $token // Return the new token
-                ], 200);
-            }
-
-            // If not verified, verify the user's email
-            $user->markEmailAsVerified();
-
-            // Clear the OTP from the user model
-            $user->otp = null;
-            $user->otp_expires_at = null; // Clear expiration time
-            $user->save();
-
-            // Generate a new token for the user after verification
-            $token = JWTAuth::fromUser($user);
-
-            $data = [
-                'name' => $user->name,
-            ];
-            // Mail::to($user->email)->send(new RegistrationSuccessful($data));
-
-
-            return response()->json([
-                'message' => 'Email verified successfully.',
-                'user' => [
-                    'email' => $user->email,
-                    'name' => $user->name,
-                    'username' => $user->username,
-                    'step' => $user->step,
-                    'email_verified' => true, // Email was verified
-                ],
-                'token' => $token // Return the new token
-            ], 200);
-        }
-
-        return response()->json(['error' => 'Invalid OTP'], 400);
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 400);
     }
+
+
+
+
+    // Find the user by email
+    $user = User::where('email', $request->email)->first();
+
+    // Check if the provided OTP matches the stored OTP
+    if (!Hash::check($request->otp, $user->otp)) {
+        return response()->json(['error' => 'Invalid OTP. Please check the OTP and try again.'], 400);
+    }
+
+
+    // Check if the email is already verified
+    if ($user->hasVerifiedEmail()) {
+        return $this->generateResponse($user, 'Your email is already verified. You can proceed to use your account.');
+    }
+
+    // Check if the OTP has expired
+    if ($user->otp_expires_at && $user->otp_expires_at < now()) {
+        return response()->json(['error' => 'OTP has expired. Please request a new OTP.'], 400);
+    }
+
+    // Verify the user's email
+    $user->markEmailAsVerified();
+
+    // Clear the OTP and expiration time
+    $user->update([
+        'otp' => null,
+        'otp_expires_at' => null,
+    ]);
+
+    // Generate a new token for the user after verification
+    $token = JWTAuth::fromUser($user);
+
+    // Send registration success email (if needed)
+    // Mail::to($user->email)->send(new RegistrationSuccessful(['name' => $user->name]));
+
+    return response()->json([
+        'message' => 'Email verified successfully.',
+        'user' => $this->getUserPayload($user),
+        'token' => $token,
+    ], 200);
+}
+
+/**
+ * Generate a standardized response for already verified users.
+ */
+private function generateResponse($user, $message)
+{
+    $token = JWTAuth::fromUser($user);
+    return response()->json([
+        'message' => $message,
+        'user' => $this->getUserPayload($user),
+        'token' => $token,
+    ], 200);
+}
+
+/**
+ * Get the user payload for the response.
+ */
+private function getUserPayload($user)
+{
+    $profile = Profile::where(['user_id' => $user->id, 'profile_type' => $user->active_profile])->first();
+
+    return [
+        'username' => $user->username,
+        'email' => $user->email,
+        'name' => $user->name,
+        'active_profile' => $user->active_profile,
+        'active_profile_id' => $user->active_profile_id,
+        'step' => $profile ? (int)$profile->step : 1,
+        'status' => $profile ? $profile->status : 'inactive',
+        'email_verified' => $user->hasVerifiedEmail(),
+    ];
+}
 
 
 
@@ -232,7 +222,7 @@ class VerificationController extends Controller
         $user->save();
 
         // Send the new OTP via email
-        Mail::to($user->email)->send(new OtpNotification($otp));
+        Mail::to($user->email)->send(new OtpNotification($user,$otp));
 
         return response()->json(['message' => 'A new OTP has been sent to your email.'], 200);
     }
