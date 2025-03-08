@@ -255,6 +255,7 @@ function stripe($array = [])
     $payment = Payment::create([
         'trxId' => $paymentIntent->id, // Use Stripe payment_intent as trxId
         'user_id' => $array['userid'] ?? null,
+        'userid' => $array['userid'] ?? null,
         'hiring_request_id' => $array['hiring_request_id'] ?? null,
         'type' => $array['type'] ?? 'stripe',
         'amount' => $array['amount'] ?? 1,
