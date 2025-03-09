@@ -43,7 +43,7 @@ class ApiResponse
                 $formattedResponse['isError'] = true;
 
                 // Extract the first error message from response data
-                $errorMessage = $this->getFirstErrorMessage($responseData);
+                $errorMessage = $this->getFirstErrorMessage($responseData, $response->status());
 
                 // Set the error details in the response structure
                 $formattedResponse['error'] = [
@@ -71,25 +71,55 @@ class ApiResponse
      * Extract the first error message from the response data.
      *
      * @param array $responseData
+     * @param int $statusCode
      * @return string
      */
-    private function getFirstErrorMessage(array $responseData): string
+    private function getFirstErrorMessage(array $responseData, int $statusCode): string
     {
+        // Custom error message for 401 Unauthorized
+        if ($statusCode === 401) {
+            // Check for specific keys in the response data
+            if (isset($responseData['error']) && is_string($responseData['error'])) {
+                return "You are not authorized. Please log in to your account. Error: " . $responseData['error'];
+            }
+
+            if (isset($responseData['message']) && is_string($responseData['message'])) {
+                return "You are not authorized. Please log in to your account. Error: " . $responseData['message'];
+            }
+
+            if (isset($responseData['error_description']) && is_string($responseData['error_description'])) {
+                return "You are not authorized. Please log in to your account. Error: " . $responseData['error_description'];
+            }
+
+            // Default message for 401 Unauthorized
+            return "You are not authorized. Please log in to your account.";
+        }
+
         // Check if the response contains a specific 'error' key
-        if (isset($responseData['error'])) {
+        if (isset($responseData['error']) && is_string($responseData['error'])) {
             return $responseData['error'];
         }
 
         // Check if the response contains Laravel validation errors
-        if (isset($responseData['errors'])) {
+        if (isset($responseData['errors']) && is_array($responseData['errors'])) {
             // Flatten the errors array and return the first error message
             $errors = array_values($responseData['errors']);
             return $errors[0][0] ?? 'An error occurred';
         }
 
         // Check if the response contains a 'message' key
-        if (isset($responseData['message'])) {
+        if (isset($responseData['message']) && is_string($responseData['message'])) {
             return $responseData['message'];
+        }
+
+        // Check if the response contains an 'error_description' key (common in OAuth2 errors)
+        if (isset($responseData['error_description']) && is_string($responseData['error_description'])) {
+            return $responseData['error_description'];
+        }
+
+        // Check if the response contains an 'error' key with an array value
+        if (isset($responseData['error']) && is_array($responseData['error'])) {
+            return $responseData['error']['message'] ?? 'An error occurred';
         }
 
         // Default error message
