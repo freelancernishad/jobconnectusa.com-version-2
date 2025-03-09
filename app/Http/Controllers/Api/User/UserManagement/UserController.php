@@ -261,7 +261,7 @@ class UserController extends Controller
 
         // Retrieve the active profile
         $profile = Profile::find($user->active_profile_id);
-       
+
 
         // Check if the profile exists
         if (!$profile) {
@@ -497,7 +497,7 @@ class UserController extends Controller
        $perPage = $request->get('per_page', 10);
 
        // Find all employees whose preferred_job_title matches any of the employer's looking services and are active
-       $employees = User::where('role', 'employee')
+       $employees = User::where('role', 'EMPLOYEE')
            ->whereIn('preferred_job_title', $lookingServiceIds) // Handle multiple services
            ->where('status', 'active') // Only active employees
            ->where('id', '!=', $user->id) // Exclude the logged-in user (employer)

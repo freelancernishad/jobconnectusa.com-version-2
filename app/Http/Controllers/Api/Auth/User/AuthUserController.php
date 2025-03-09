@@ -41,7 +41,7 @@ class AuthUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255', // Remove unique:users here
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|string|in:employee,employer', // Validate role input
+            'role' => 'required|string|in:EMPLOYEE,EMPLOYER', // Validate role input
         ]);
 
         if ($validator->fails()) {
@@ -60,7 +60,7 @@ class AuthUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'active_profile' => $request->role === 'employer' ? 'employer' : 'employee', // Set active_profile based on role
+            'active_profile' => $request->role === 'EMPLOYER' ? 'EMPLOYER' : 'EMPLOYEE', // Set active_profile based on role
         ]);
 
         // Generate a JWT token for the newly created user
@@ -128,7 +128,7 @@ class AuthUserController extends Controller
     $validator = Validator::make($request->all(), [
         'email' => 'required|string|email',
         'password' => 'required|string',
-        'role' => 'required|string|in:employee,employer', // Validate role
+        'role' => 'required|string|in:EMPLOYER,EMPLOYER', // Validate role
     ]);
 
     if ($validator->fails()) {
@@ -142,10 +142,10 @@ class AuthUserController extends Controller
         $user = Auth::user();
 
         // Update active_profile based on role
-        if ($request->role === 'employee') {
-            $user->active_profile = 'employee';
-        } elseif ($request->role === 'employer') {
-            $user->active_profile = 'employer';
+        if ($request->role === 'EMPLOYEE') {
+            $user->active_profile = 'EMPLOYEE';
+        } elseif ($request->role === 'EMPLOYER') {
+            $user->active_profile = 'EMPLOYER';
         }
 
 

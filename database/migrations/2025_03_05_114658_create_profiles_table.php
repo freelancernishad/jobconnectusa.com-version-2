@@ -37,7 +37,7 @@ class CreateProfilesTable extends Migration
             $table->string('resume')->nullable();
             $table->string('status')->nullable()->default('inactive'); // Add status
             $table->string('step')->nullable(); // Add step
-            $table->enum('profile_type', ['employer', 'employee'])->default('employer');
+            $table->enum('profile_type', ['EMPLOYER', 'EMPLOYEE'])->default('EMPLOYER');
             $table->timestamps();
         });
     }

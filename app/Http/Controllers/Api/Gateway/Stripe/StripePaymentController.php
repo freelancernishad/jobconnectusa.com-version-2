@@ -198,7 +198,7 @@ class StripePaymentController extends Controller
     {
      
         // Find the profile by user ID
-        $profile = Profile::where(['user_id'=> $userId,'profile_type'=>'employee'])->first();
+        $profile = Profile::where(['user_id'=> $userId,'profile_type'=>'EMPLOYEE'])->first();
 
         if ($profile) {
             // Check if the profile is already active
