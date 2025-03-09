@@ -23,25 +23,37 @@ class HiringProcessController extends Controller
      */
     public function createHiringRequest(Request $request)
     {
+        // Remove 'employer_id' from the validation rules
         $validator = Validator::make($request->all(), [
-            'employer_id' => 'required|exists:users,id',
             'job_title' => 'required|string|max:255',
             'job_description' => 'required|string',
             'expected_start_date' => 'required|date',
             'selected_employees' => 'required|array',
-            'selected_employees.*' => 'required|exists:users,id',
+            'selected_employees.*' => [
+                'required',
+                'exists:users,id',
+                function ($attribute, $value, $fail) {
+                    // Check if the user has a profile with profile_type = 'EMPLOYEE'
+                    $user = User::find($value);
+                    if (!$user || !$user->profile || $user->profile->profile_type !== 'EMPLOYEE') {
+                        $fail("The selected employee with ID $value does not have a valid EMPLOYEE profile.");
+                    }
+                },
+            ],
             'success_url' => 'required|url',
             'cancel_url' => 'required|url',
-            'employee_needed' => 'required|integer|min:1',  // Validate employee_needed
-            'hourly_rate' => 'required|numeric|min:0',      // New validation rule
-            'total_hours' => 'required|integer|min:0',      // New validation rule
-            'payable_amount' => 'required|numeric|min:0',   // New validation rule
+            'employee_needed' => 'required|integer|min:1',
+            'hourly_rate' => 'required|numeric|min:0',
+            'total_hours' => 'required|integer|min:0',
+            'payable_amount' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
             return jsonResponse(false, 'Validation errors occurred.', null, 400, ['errors' => $validator->errors()]);
         }
 
+        // Get the authenticated user's ID
+        $employerId = auth()->id();
 
         // Get the total number of selected employees
         $totalEmployees = count($request->input('selected_employees'));
@@ -68,19 +80,18 @@ class HiringProcessController extends Controller
 
         // Create the hiring request
         $hiringRequest = HiringRequest::create([
-            'employer_id' => $request->input('employer_id'),
+            'employer_id' => $employerId, // Use the authenticated user's ID
             'job_title' => $request->input('job_title'),
             'job_description' => $request->input('job_description'),
             'expected_start_date' => $request->input('expected_start_date'),
             'salary_offer' => $request->hourly_rate,
-            'employee_needed' => $request->input('employee_needed'),  // Store employee_needed
+            'employee_needed' => $request->input('employee_needed'),
             'status' => 'Prepaid',
-
-            'hourly_rate' => $request->hourly_rate,         // New field
-            'total_hours' => $request->total_hours,         // New field
-            'paid_amount' => $paidAmount,                   // New field
-            'due_amount' => $dueAmount,                     // New field
-            'total_amount' => $totalAmount,                 // New field
+            'hourly_rate' => $request->hourly_rate,
+            'total_hours' => $request->total_hours,
+            'paid_amount' => $paidAmount,
+            'due_amount' => $dueAmount,
+            'total_amount' => $totalAmount,
         ]);
 
         // Attach selected employees to the hiring request
@@ -95,7 +106,7 @@ class HiringProcessController extends Controller
         // Payment data
         $paymentData = [
             'name' => $request->input('job_title'),
-            'userid' => $request->input('employer_id'),
+            'userid' => $employerId, // Use the authenticated user's ID
             'amount' => $paidAmount,
             'applicant_mobile' => '1234567890', // This should come from employer's data
             'success_url' => $request->success_url,
@@ -114,7 +125,6 @@ class HiringProcessController extends Controller
             'paymentUrl' => $paymentUrl['session_url'],
         ], 201);
     }
-
 
 
     /**

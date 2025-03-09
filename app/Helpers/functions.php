@@ -56,6 +56,11 @@ function jsonResponse($success, $message, $data = null, $statusCode = 200, array
 
     // Merge any extra fields into the response
     if (!empty($extraFields)) {
+        $response = [
+            'success' => $success,
+            'message' => $message,
+            'data' => $data
+        ];
         $response = array_merge($response, $extraFields);
     }
 

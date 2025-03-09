@@ -31,6 +31,9 @@ class ApiResponse
             // Decode the response content if it's JSON
             $responseData = json_decode($response->getContent(), true) ?? [];
 
+
+
+
             // Initialize the formatted response structure
             $formattedResponse = [
                 'data' => $this->extractData($responseData), // Extract data dynamically
@@ -77,7 +80,24 @@ class ApiResponse
      */
     private function extractData(array $responseData)
     {
+        // Log::info($responseData);
 
+        // Check if the response contains a token
+        if (isset($responseData['token']) || isset($responseData['id'])) {
+            // If a token is present, return the original response
+            return $responseData;
+        }
+            // Check if the response contains a token
+
+        // Check if the response has exactly 4 elements
+        if (count($responseData) >= 4) {
+            // Remove 'success' and 'message' keys if they exist
+            $filteredData = array_filter($responseData, function ($key) {
+                return !in_array($key, ['success', 'message']);
+            }, ARRAY_FILTER_USE_KEY);
+
+            return $filteredData;
+        }
 
         if (isset($responseData['success']) &&
             isset($responseData['message']) &&

@@ -128,7 +128,7 @@ class AuthUserController extends Controller
     $validator = Validator::make($request->all(), [
         'email' => 'required|string|email',
         'password' => 'required|string',
-        'role' => 'required|string|in:EMPLOYER,EMPLOYER', // Validate role
+        'role' => 'required|string|in:EMPLOYEE,EMPLOYER', // Validate role
     ]);
 
     if ($validator->fails()) {

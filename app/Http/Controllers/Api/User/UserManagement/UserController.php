@@ -180,9 +180,9 @@ class UserController extends Controller
 
         // Update related models
         $this->updateRelatedModels($user, $request);
-        $profile =  new ProfileResource($profile);
+       $profile = new ProfileResource($profile);
 
-        return response()->json($profile);
+        return  response()->json($profile);
     }
 
     /**
