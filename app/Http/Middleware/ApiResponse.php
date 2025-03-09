@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class ApiResponse
@@ -32,7 +33,8 @@ class ApiResponse
 
             // Initialize the formatted response structure
             $formattedResponse = [
-                'data' => $responseData, // Default to the original response data
+                'data' => $this->extractData($responseData), // Extract data dynamically
+                'Message' => $responseData['message'] ?? $responseData['data']['message'] ?? null, // Move 'message' to root as 'Message
                 'isError' => false,
                 'error' => null,
                 'status_code' => $response->status(),
@@ -65,6 +67,39 @@ class ApiResponse
 
         // If the response is not an instance of Response, return it as is
         return $response;
+    }
+
+    /**
+     * Extract the data from the response, handling dynamic keys and metadata.
+     *
+     * @param array $responseData
+     * @return mixed
+     */
+    private function extractData(array $responseData)
+    {
+
+
+        if (isset($responseData['success']) &&
+            isset($responseData['message']) &&
+            count($responseData) === 2) {
+            return []; // Return an empty array
+        }
+
+        // If the response has a 'data' key
+        if (isset($responseData['data'])) {
+            // If 'data' contains actual data, return it
+            return $responseData['data'];
+        }
+
+        // If the response has a nested key like 'service', use it
+        foreach ($responseData as $key => $value) {
+            if ($key !== 'message' && $key !== 'success' && is_array($value)) {
+                return $value;
+            }
+        }
+
+        // If no specific key is found, return the entire response
+        return $responseData;
     }
 
     /**

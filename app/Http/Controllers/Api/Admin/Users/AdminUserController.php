@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Api\Admin\Users;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Payment;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Auth;
 
 class AdminUserController extends Controller
@@ -165,11 +166,19 @@ class AdminUserController extends Controller
 
     public function getUsersByRole(Request $request)
     {
+        // Validate the request parameters
+        $request->validate([
+            'search' => 'nullable|string', // Global search term (name, email, phone_number)
+            'role' => 'nullable|in:EMPLOYEE,EMPLOYER', // Filter by profile_type
+            'service' => 'nullable|integer', // Filter by preferred_job_title
+            'per_page' => 'nullable|integer|min:1', // Pagination limit
+        ]);
+
         // Get the search parameter for global search
-        $searchQuery = $request->query('search'); // This will be the search term (name, email, phone_number)
+        $searchQuery = $request->query('search');
 
         // Get the role parameter (optional)
-        $role = $request->query('role'); // Get the role parameter
+        $role = $request->query('role'); // This corresponds to profile_type in the Profile model
 
         // Get the per_page parameter with a default of 10
         $perPage = $request->query('per_page', 10);
@@ -182,56 +191,37 @@ class AdminUserController extends Controller
             $query->where(function($q) use ($searchQuery) {
                 $q->where('name', 'LIKE', '%' . $searchQuery . '%')
                   ->orWhere('email', 'LIKE', '%' . $searchQuery . '%')
-                  ->orWhere('phone_number', 'LIKE', '%' . $searchQuery . '%');
+                  ->orWhereHas('profile', function($profileQuery) use ($searchQuery) {
+                      $profileQuery->where('phone_number', 'LIKE', '%' . $searchQuery . '%')
+                                   ->orWhere('first_name', 'LIKE', '%' . $searchQuery . '%')
+                                   ->orWhere('last_name', 'LIKE', '%' . $searchQuery . '%');
+                  });
             });
         }
 
         // Apply role-based filters if a role is provided
         if ($role) {
-
-
-            // if ($role === 'EMPLOYEE') {
-            //     $query->where('role', 'EMPLOYEE')->where('status', 'active');
-            // } elseif ($role === 'EMPLOYER') {
-            //     $query->where('role', 'EMPLOYER')->where('employer_status', 'active');
-            // }
-
-
-            if ($role === 'EMPLOYEE') {
-                $query->where('role', 'EMPLOYEE');
-            } elseif ($role === 'EMPLOYER') {
-                $query->where('role', 'EMPLOYER');
-            }
-
-
-
-        } else {
-            // If no role is specified, filter by active employees and employers
-            // $query->where(function($q) {
-            //     $q->where(function($subQuery) {
-            //         $subQuery->where('status', 'active')
-            //                  ->where('employer_status', 'inactive');
-            //     })->orWhere(function($subQuery) {
-            //         $subQuery->where('status', 'inactive')
-            //                  ->where('employer_status', 'active');
-            //     })->orWhere(function($subQuery) {
-            //         $subQuery->where('status', 'active')
-            //                  ->where('employer_status', 'active');
-            //     });
-            // });
+            $query->whereHas('profile', function($profileQuery) use ($role) {
+                $profileQuery->where('profile_type', $role);
+            });
         }
 
+        // Ensure only verified users are retrieved
         $query->whereNotNull('email_verified_at');
+
         // Get the service parameter for preferred job title filter (optional)
-        $service = $request->query('service'); // This can be 1, 2, or 3
+        $service = $request->query('service');
+
         // Apply preferred_job_title filter if service is provided
         if ($service) {
-            $query->where('preferred_job_title', $service);
+            $query->whereHas('profile', function($profileQuery) use ($service) {
+                $profileQuery->where('preferred_job_title', $service);
+            });
         }
-
 
         // Retrieve the users with eager loading and pagination
         $users = $query->with([
+            'profile', // Load the profile relationship
             'languages',
             'certifications',
             'skills',
@@ -242,10 +232,12 @@ class AdminUserController extends Controller
             'servicesLookingFor'
         ])->paginate($perPage);
 
+         UserResource::collection($users);
+
+
         // Build response using jsonResponse
         return jsonResponse(true, 'Users retrieved successfully.', $users);
     }
-
 
 
 

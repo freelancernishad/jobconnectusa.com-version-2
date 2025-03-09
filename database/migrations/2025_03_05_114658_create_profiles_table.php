@@ -35,7 +35,7 @@ class CreateProfilesTable extends Migration
             $table->text('your_experience')->nullable();
             $table->boolean('familiar_with_safety_protocols')->default(false);
             $table->string('resume')->nullable();
-            $table->string('status')->nullable()->default('inactive'); // Add status
+            $table->string('status')->default('inactive'); // Add status
             $table->string('step')->nullable(); // Add step
             $table->enum('profile_type', ['EMPLOYER', 'EMPLOYEE'])->default('EMPLOYER');
             $table->timestamps();

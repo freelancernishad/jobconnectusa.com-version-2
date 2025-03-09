@@ -46,11 +46,13 @@ function validateRequest(array $data, array $rules)
 function jsonResponse($success, $message, $data = null, $statusCode = 200, array $extraFields = [])
 {
     // Build the base response structure
-    $response = [
-        'success' => $success,
-        'message' => $message,
-        'data' => $data
-    ];
+    // $response = [
+    //     'success' => $success,
+    //     'message' => $message,
+    //     'data' => $data
+    // ];
+
+    $response = $data;
 
     // Merge any extra fields into the response
     if (!empty($extraFields)) {

@@ -78,7 +78,7 @@ Route::prefix('admin')->middleware(AuthenticateAdmin::class)->group(function () 
     });
 
     // Admin User Search
-    Route::get('users/search', [AdminUserController::class, 'getUsersByRole']);
+    Route::get('user/search', [AdminUserController::class, 'getUsersByRole']);
 
     // Job Routes
     Route::prefix('jobs')->group(function () {
