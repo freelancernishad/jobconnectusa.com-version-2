@@ -8,6 +8,7 @@ use App\Models\HiringSelection;
 use App\Models\HiringAssignment;
 use App\Models\EmployeeHiringPrice;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Admin; // Ensure this model exists
 use App\Models\User; // Assuming Employee is also a User
@@ -167,10 +168,12 @@ class HiringProcessController extends Controller
 
     // Assign each employee from the provided array
     foreach ($request->input('assigned_employee_id') as $employeeId) {
+
+        $admin_id = Auth::guard('admin')->id();
         HiringAssignment::create([
             'hiring_request_id' => $id,
             'assigned_employee_id' => $employeeId,
-            'admin_id' => $request->user()->id, // Assuming admin is the current authenticated user
+            'admin_id' => $admin_id,
             'assignment_note' => $request->input('assignment_note'),
             'assignment_date' => $request->input('assignment_date'),
             'status' => 'Assigned',
