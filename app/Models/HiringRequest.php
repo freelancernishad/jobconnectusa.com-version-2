@@ -24,6 +24,13 @@ class HiringRequest extends Model
         'total_amount',       // New attribute
     ];
 
+
+    public function scopeWithoutPrepaid($query)
+    {
+        return $query->where('status', '!=', 'Prepaid');
+    }
+
+
     // Relationship with Employer (User)
     public function employer()
     {
