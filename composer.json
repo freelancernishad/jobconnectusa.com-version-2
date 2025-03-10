@@ -35,7 +35,8 @@
             "app/Helpers/Package/PackageHelpers.php",
             "app/Helpers/Mpdf/MpdfHelpers.php",
             "app/Helpers/GoogleAuth/GoogleHelpers.php",
-            "app/Helpers/DashboardMetrics/DashboardMetricsHelpers.php"
+            "app/Helpers/DashboardMetrics/DashboardMetricsHelpers.php",
+            "app/Helpers/User/UserHelpers.php"
         ]
     },
     "autoload-dev": {

@@ -4,10 +4,14 @@ namespace App\Http\Controllers\Api\Admin\Users;
 
 use App\Models\User;
 use App\Models\Payment;
+use App\Models\Profile;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class AdminUserController extends Controller
 {
@@ -246,6 +250,140 @@ class AdminUserController extends Controller
 
 
 
+
+
+    public function createUserAndProfile(Request $request)
+    {
+        // Validate the request data
+        $validator = Validator::make($request->all(), [
+            'email' => 'required_without:user_id|string|email|max:255|unique:users,email,' . $request->user_id,
+            'password' => 'required|string|min:8',
+            'profile_picture' => 'nullable|string',
+            'user_id' => 'nullable|exists:users,id',
+
+            // Profile fields
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'phone_number' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'date_of_birth' => 'nullable|date',
+            'preferred_job_title' => 'nullable|string|max:255',
+            'is_other_preferred_job_title' => 'nullable|boolean',
+            'company_name' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'years_of_experience_in_the_industry' => 'nullable|integer',
+            'preferred_work_state' => 'nullable|string|max:255',
+            'preferred_work_zipcode' => 'nullable|string|max:255',
+            'your_experience' => 'nullable|string',
+            'familiar_with_safety_protocols' => 'nullable|boolean',
+            'job_by' => 'nullable|string||in:INDIVIDUAL,COMPANY',
+            'resume' => 'nullable|string',
+            'status' => 'nullable|string|max:255',
+            'profile_type' => 'nullable|string|in:EMPLOYEE,EMPLOYER',
+
+            // Related models
+            'languages' => 'nullable|array',
+            'languages.*.language' => 'required_with:languages|string|max:255',
+            'languages.*.level' => 'required_with:languages|string|max:255',
+
+            'certifications' => 'nullable|array',
+            'certifications.*.name' => 'required_with:certifications|string|max:255',
+            'certifications.*.certified_from' => 'required_with:certifications|string|max:255',
+            'certifications.*.year' => 'required_with:certifications|integer|digits:4',
+
+            'skills' => 'nullable|array',
+            'skills.*.name' => 'required_with:skills|string|max:255',
+            'skills.*.level' => 'required_with:skills|string|max:255',
+
+            'education' => 'nullable|array',
+            'education.*.school_name' => 'required_with:education|string|max:255',
+            'education.*.qualifications' => 'required_with:education|string|max:255',
+            'education.*.start_date' => 'required_with:education|date',
+            'education.*.end_date' => 'nullable|date|after_or_equal:education.*.start_date',
+            'education.*.notes' => 'nullable|string',
+
+            'employment_history' => 'nullable|array',
+            'employment_history.*.company' => 'required_with:employment_history|string|max:255',
+            'employment_history.*.position' => 'required_with:employment_history|string|max:255',
+            'employment_history.*.start_date' => 'required_with:employment_history|date',
+            'employment_history.*.end_date' => 'nullable|date|after_or_equal:employment_history.*.start_date',
+            'employment_history.*.responsibilities' => 'nullable|string',
+
+            'looking_services' => 'nullable|array',
+            'looking_services.*' => 'required_with:looking_services|exists:services,id',
+
+            'other_looking_services' => 'nullable|array',
+            'other_looking_services.*' => 'required_with:other_looking_services|string|max:255',
+        ]);
+
+        // If validation fails, return error response
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // User creation or retrieval
+        if ($request->filled('user_id')) {
+            $user = User::findOrFail($request->user_id);
+        } else {
+            $user = User::create([
+                'username' => $request->username ?? Str::before($request->email, '@'),
+                'name' => trim(($request->first_name ?? '') . ' ' . ($request->last_name ?? '')),
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'profile_picture' => $request->profile_picture,
+            ]);
+        }
+
+        // Profile creation or update
+        $profile = Profile::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'profile_type' => $request->profile_type
+            ],
+            [
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'phone_number' => $request->phone_number,
+                'address' => $request->address,
+                'date_of_birth' => $request->date_of_birth,
+                'profile_picture' => $request->profile_picture,
+                'preferred_job_title' => $request->preferred_job_title,
+                'is_other_preferred_job_title' => $request->is_other_preferred_job_title,
+                'company_name' => $request->company_name,
+                'description' => $request->description,
+                'years_of_experience_in_the_industry' => $request->years_of_experience_in_the_industry,
+                'preferred_work_state' => $request->preferred_work_state,
+                'preferred_work_zipcode' => $request->preferred_work_zipcode,
+                'your_experience' => $request->your_experience,
+                'familiar_with_safety_protocols' => $request->familiar_with_safety_protocols,
+                'job_by' => $request->job_by,
+                'activation_payment_made' => 0,
+                'activation_payment_cancel' => 0,
+                'resume' => $request->resume,
+                'status' => $request->status ?? ($request->profile_type === 'EMPLOYER' ? 'active' : 'inactive'),
+                'step' => 2,
+            ]
+        );
+
+        // Manage related models
+        createRelatedModels($user, $request);
+
+        // Load relations
+        $user->load([
+            'languages',
+            'certifications',
+            'skills',
+            'education',
+            'employmentHistory',
+            'lookingServices',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User and profile processed successfully',
+            'user' => new UserResource($user),
+        ], 201);
+    }
 
 
 

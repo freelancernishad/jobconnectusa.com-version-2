@@ -92,6 +92,21 @@ Route::prefix('admin')->middleware(AuthenticateAdmin::class)->group(function () 
 
     // Job Applications Routes
     Route::get('job-applies', [JobApplyController::class, 'getJobApplies']);
+
+
+
+
+    // version 2 features
+
+    Route::post('create/profile', [AdminUserController::class, 'createUserAndProfile']);
+
+
+
+
+
+
+
+
 });
 
 // Transaction Route (Outside Admin Middleware)
