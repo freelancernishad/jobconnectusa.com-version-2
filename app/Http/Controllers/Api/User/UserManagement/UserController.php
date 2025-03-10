@@ -148,7 +148,7 @@ class UserController extends Controller
         }
         $active_profile = $user->active_profile;
 
-        if($active_profile=='employer'){
+        if($active_profile=='EMPLOYER'){
             $profileData['status'] = 'active';
         }
 
