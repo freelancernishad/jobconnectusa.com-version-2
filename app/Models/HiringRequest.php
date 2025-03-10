@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
+
 
 class HiringRequest extends Model
 {
@@ -25,9 +27,17 @@ class HiringRequest extends Model
     ];
 
 
-    public function scopeWithoutPrepaid($query)
+    /**
+     * The "booted" method of the model.
+     *
+     * @return void
+     */
+    protected static function booted()
     {
-        return $query->where('status', '!=', 'Prepaid');
+        // Add a global scope to exclude "Prepaid" status records
+        static::addGlobalScope('exclude_prepaid', function (Builder $builder) {
+            $builder->where('status', '!=', 'Prepaid');
+        });
     }
 
 
