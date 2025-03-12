@@ -134,3 +134,14 @@ function generateTransactionId()
 {
     return 'TRX-' . strtoupper(uniqid());
 }
+
+
+
+function logBrowsingHistory($viewedUserId)
+{
+    BrowsingHistory::create([
+        'user_id' => auth()->id(), // The current user (who is browsing)
+        'viewed_user_id' => $viewedUserId, // The user being viewed
+        'viewed_at' => now(),
+    ]);
+}
