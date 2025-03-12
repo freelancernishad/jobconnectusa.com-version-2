@@ -61,8 +61,8 @@ Route::prefix('user')->group(function () {
         Route::post('/register/step3', [UserController::class, 'registerStep3']);
 
         // Fetch user data by username and update profile by token
-        Route::get('/user/{username}', [UserController::class, 'getUserByUsername']);
-        Route::post('/user/update/profile', [UserController::class, 'updateProfileByToken']);
+        Route::get('/get/{username}', [UserController::class, 'getUserByUsername']);
+        Route::post('/update/profile', [UserController::class, 'updateProfileByToken']);
 
         // Resume management (create, update, delete, download)
         Route::get('/resumes', [ResumeController::class, 'index']);
