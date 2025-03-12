@@ -16,7 +16,7 @@ function handleGoogleAuth(Request $request)
     // Validate the access token
     $validator = Validator::make($request->all(), [
         'access_token' => 'required|string',
-        'role' => 'required|string|in:EMPLOYEE,employer', // Validate role input
+        'role' => 'required|string|in:EMPLOYEE,EMPLOYER', // Validate role input
     ]);
 
     if ($validator->fails()) {
@@ -46,13 +46,13 @@ function handleGoogleAuth(Request $request)
                 'email' => $userData['email'],
                 'password' => Hash::make(Str::random(16)), // Generate a random password
                 'email_verified_at' => now(),
-                'active_profile' => $request->role === 'employer' ? 'employer' : 'EMPLOYEE', // Set active_profile based on role
+                'active_profile' => $request->role === 'EMPLOYER' ? 'EMPLOYER' : 'EMPLOYEE', // Set active_profile based on role
             ]);
         } else {
             // Update the user's email verification status and role if necessary
             $user->update([
                 'email_verified_at' => now(),
-                'active_profile' => $request->role === 'employer' ? 'employer' : 'EMPLOYEE', // Update active_profile
+                'active_profile' => $request->role === 'EMPLOYER' ? 'EMPLOYER' : 'EMPLOYEE', // Update active_profile
             ]);
         }
 
