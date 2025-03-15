@@ -2,15 +2,16 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\AuthenticateAdmin;
-use App\Http\Controllers\Api\Auth\Admin\AdminAuthController;
-use App\Http\Controllers\Api\Admin\Users\AdminUserController;
-use App\Http\Controllers\Api\Admin\Service\ServiceController;
-use App\Http\Controllers\Api\Admin\SkillList\SkillListController;
 use App\Http\Controllers\Api\Admin\Job\JobController;
+use App\Http\Controllers\Api\User\Media\MediaController;
 use App\Http\Controllers\Api\Admin\Job\JobApplyController;
+use App\Http\Controllers\Api\Auth\Admin\AdminAuthController;
+use App\Http\Controllers\Api\Admin\Service\ServiceController;
+use App\Http\Controllers\Api\Admin\Users\AdminUserController;
+use App\Http\Controllers\Api\Admin\SkillList\SkillListController;
 use App\Http\Controllers\Api\Admin\Hiring\HiringProcessController;
-use App\Http\Controllers\Api\Admin\Hiring\EmployeeHiringPriceController;
 use App\Http\Controllers\Api\Admin\Transaction\TransactionController;
+use App\Http\Controllers\Api\Admin\Hiring\EmployeeHiringPriceController;
 
 // Admin Authentication Routes
 Route::prefix('auth/admin')->group(function () {
@@ -46,6 +47,19 @@ Route::prefix('admin')->middleware(AuthenticateAdmin::class)->group(function () 
         Route::delete('{id}', [SkillListController::class, 'destroy']);
         Route::get('/services/{serviceId}', [SkillListController::class, 'listByService']);
     });
+
+
+
+            // Media management (upload, fetch, update, delete)
+            Route::prefix('media')->group(function () {
+                Route::post('/', [MediaController::class, 'store']);
+                Route::get('/', [MediaController::class, 'index']);
+                Route::get('/{id}', [MediaController::class, 'show']);
+                Route::post('/{id}', [MediaController::class, 'update']);
+                Route::delete('/{id}', [MediaController::class, 'destroy']);
+            });
+
+
 
     // User Payment Approval Routes
     Route::get('users-with-pending-payments', [AdminUserController::class, 'getUsersWithPendingPayments']);
