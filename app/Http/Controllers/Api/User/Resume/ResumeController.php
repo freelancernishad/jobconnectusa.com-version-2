@@ -18,16 +18,18 @@ class ResumeController extends Controller
     public function index(Request $request)
     {
         // Check if the authenticated user is an admin
-        if (auth('admin')->check()) {
-            $user = User::find($request->input('user_id'));
+        // if (auth('admin')->check()) {
+        //     $user = User::find($request->input('user_id'));
 
-            if (!$user) {
-                return response()->json(['error' => 'User not found.'], 404);
-            }
-        } else {
-            $user = auth()->user();
-        }
+        //     if (!$user) {
+        //         return response()->json(['error' => 'User not found.'], 404);
+        //     }
+        // } else {
+        //     $user = auth()->user();
+        // }
 
+        $user = auth()->user();
+        
         $resumes = $user->resumes;
 
         return response()->json([
