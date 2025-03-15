@@ -83,6 +83,12 @@ class ApiResponse
         // Log::info($responseData);
 
         // Check if the response contains a token
+        if (isset($responseData['app']) && isset($responseData['database']) && isset($responseData['server'])) {
+            // If a token is present, return the original response
+            return $responseData;
+        }
+
+        // Check if the response contains a token
         if (isset($responseData['token']) || isset($responseData['id'])) {
             // If a token is present, return the original response
             return $responseData;
