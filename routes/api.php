@@ -108,5 +108,5 @@ Route::post('stripe/webhook', [StripePaymentController::class, 'handleWebhook'])
 
 
 
-Route::get('/server-status', [ServerStatusController::class, 'checkStatus']);
+Route::get('/server-status', [ServerStatusController::class, 'status']);
 
