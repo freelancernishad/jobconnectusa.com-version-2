@@ -16,28 +16,29 @@ class ResumeController extends Controller
      * Display a listing of the user's resumes.
      */
     public function index(Request $request)
-    {
-        // Check if the authenticated user is an admin
-        // if (auth('admin')->check()) {
-        //     $user = User::find($request->input('user_id'));
-
-        //     if (!$user) {
-        //         return response()->json(['error' => 'User not found.'], 404);
-        //     }
-        // } else {
-        //     $user = auth()->user();
-        // }
-
+{
+    // Check if the authenticated user is an admin
+    if (auth('admin')->check()) {
+        // If the user is an admin, get all resumes from all users
+        $resumes = Resume::all();
+    } else {
+        // If the user is not an admin, get only their own resumes
         $user = auth()->user();
-        
-        $resumes = $user->resumes;
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Resumes retrieved successfully.',
-            'resumes' => $resumes,
-        ], 200);
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated.'], 401);
+        }
+
+        $resumes = $user->resumes;
     }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Resumes retrieved successfully.',
+        'resumes' => $resumes,
+    ], 200);
+}
+
 
     /**
      * Store a newly uploaded resume in storage.
@@ -78,7 +79,7 @@ class ResumeController extends Controller
 
         // Save the resume path in the database for the correct user
         $resume = $user->resumes()->create([
-            'resume_path' => $path,
+            'resume_path' => url("/files/$path"),
         ]);
 
         // Return success response with resume details
