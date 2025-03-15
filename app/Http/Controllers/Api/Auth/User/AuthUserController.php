@@ -38,7 +38,7 @@ class AuthUserController extends Controller
 
         // Step 1: Basic validation (excluding unique:users for email)
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'name' => 'nullable|string|max:255',
             'email' => 'required|string|email|max:255', // Remove unique:users here
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|string|in:EMPLOYEE,EMPLOYER', // Validate role input
@@ -57,7 +57,7 @@ class AuthUserController extends Controller
 
         // Create the user
         $user = User::create([
-            'name' => $request->name,
+            'name' => $request->name ?? 'Unknown',
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'active_profile' => $request->role === 'EMPLOYER' ? 'EMPLOYER' : 'EMPLOYEE', // Set active_profile based on role

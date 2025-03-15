@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\User\Resume;
 
+use App\Models\User;
 use App\Models\Resume;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -31,30 +32,52 @@ class ResumeController extends Controller
      */
     public function store(Request $request)
     {
+        // Validate the request
         $validator = Validator::make($request->all(), [
+            // Uncomment and update the validation if needed
             // 'resume' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:2048',
         ]);
 
+        // If validation fails, return the errors
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 400);
         }
 
-        $user = auth()->user();
+        // Check if the authenticated user is an admin
+        if (auth('admin')->check()) {
+            // If admin, get the user by the provided user_id in the request
+            $user = User::find($request->input('user_id'));
 
-        // Store the uploaded resume in the protected storage
-        $path = $request->file('resume')->store('resumes', 'protected');
+            // If no user is found, return an error response
+            if (!$user) {
+                return response()->json(['error' => 'User not found.'], 404);
+            }
+        } else {
+            // If not an admin, use the authenticated user
+            $user = auth()->user();
+        }
 
-        // Save the resume path in the database
+        // Check if a file is uploaded in the request
+        if ($request->hasFile('resume')) {
+            // Store the uploaded resume in the protected storage disk
+            $path = $request->file('resume')->store('resumes', 'protected');
+        } else {
+            return response()->json(['error' => 'No resume file provided.'], 400);
+        }
+
+        // Save the resume path in the database for the correct user
         $resume = $user->resumes()->create([
             'resume_path' => $path,
         ]);
 
+        // Return success response with resume details
         return response()->json([
             'success' => true,
             'message' => 'Resume uploaded successfully.',
             'resume' => $resume,
         ], 201);
     }
+
 
     /**
      * Display the specified resume.

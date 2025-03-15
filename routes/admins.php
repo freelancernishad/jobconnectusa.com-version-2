@@ -5,6 +5,7 @@ use App\Http\Middleware\AuthenticateAdmin;
 use App\Http\Controllers\Api\Admin\Job\JobController;
 use App\Http\Controllers\Api\User\Media\MediaController;
 use App\Http\Controllers\Api\Admin\Job\JobApplyController;
+use App\Http\Controllers\Api\User\Resume\ResumeController;
 use App\Http\Controllers\Api\Auth\Admin\AdminAuthController;
 use App\Http\Controllers\Api\Admin\Service\ServiceController;
 use App\Http\Controllers\Api\Admin\Users\AdminUserController;
@@ -48,7 +49,12 @@ Route::prefix('admin')->middleware(AuthenticateAdmin::class)->group(function () 
         Route::get('/services/{serviceId}', [SkillListController::class, 'listByService']);
     });
 
-
+        // Resume management (create, update, delete, download)
+        Route::get('/resumes', [ResumeController::class, 'index']);
+        Route::post('/resumes', [ResumeController::class, 'store']);
+        Route::post('/resumes/download/{id}', [ResumeController::class, 'show']);
+        Route::delete('/resumes/{id}', [ResumeController::class, 'destroy']);
+        Route::get('/authenticated/user/resumes', [ResumeController::class, 'getByAuthenticatedUser']);
 
             // Media management (upload, fetch, update, delete)
             Route::prefix('media')->group(function () {
