@@ -271,7 +271,7 @@ class AdminUserController extends Controller
             'is_other_preferred_job_title' => 'nullable|boolean',
             'company_name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'years_of_experience_in_the_industry' => 'nullable|integer',
+            'years_of_experience_in_the_industry' => 'nullable',
             'preferred_work_state' => 'nullable|string|max:255',
             'preferred_work_zipcode' => 'nullable|string|max:255',
             'your_experience' => 'nullable|string',
