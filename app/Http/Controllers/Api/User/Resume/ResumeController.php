@@ -15,9 +15,19 @@ class ResumeController extends Controller
     /**
      * Display a listing of the user's resumes.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $user = auth()->user();
+        // Check if the authenticated user is an admin
+        if (auth('admin')->check()) {
+            $user = User::find($request->input('user_id'));
+
+            if (!$user) {
+                return response()->json(['error' => 'User not found.'], 404);
+            }
+        } else {
+            $user = auth()->user();
+        }
+
         $resumes = $user->resumes;
 
         return response()->json([
@@ -34,8 +44,7 @@ class ResumeController extends Controller
     {
         // Validate the request
         $validator = Validator::make($request->all(), [
-            // Uncomment and update the validation if needed
-            // 'resume' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:2048',
+            // 'resume' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:2048', // Add file validation
         ]);
 
         // If validation fails, return the errors
@@ -78,26 +87,49 @@ class ResumeController extends Controller
         ], 201);
     }
 
-
     /**
      * Display the specified resume.
      */
     public function show($id)
     {
-        // Fetch the resume directly by its ID
-        $resume = Resume::findOrFail($id);
+        // Check if the authenticated user is an admin
+        if (auth('admin')->check()) {
+            $user = User::find(request()->input('user_id'));
+
+            if (!$user) {
+                return response()->json(['error' => 'User not found.'], 404);
+            }
+        } else {
+            $user = auth()->user();
+        }
+
+        // Fetch the resume directly by its ID for the correct user
+        $resume = $user->resumes()->findOrFail($id);
 
         // Serve the file from protected storage
         return Storage::disk('protected')->download($resume->resume_path);
     }
-
 
     /**
      * Remove the specified resume from storage.
      */
     public function destroy($id)
     {
-        $user = auth()->user();
+        // Check if the authenticated user is an admin
+        if (auth('admin')->check()) {
+            // If admin, get the user by the provided user_id in the request
+            $user = User::find(request()->input('user_id'));
+
+            // If no user is found, return an error response
+            if (!$user) {
+                return response()->json(['error' => 'User not found.'], 404);
+            }
+        } else {
+            // If not an admin, use the authenticated user
+            $user = auth()->user();
+        }
+
+        // Find the resume by ID for the specific user
         $resume = $user->resumes()->findOrFail($id);
 
         // Delete the file from storage
@@ -112,7 +144,9 @@ class ResumeController extends Controller
         ], 200);
     }
 
-
+    /**
+     * Get all resumes for the authenticated user.
+     */
     public function getByAuthenticatedUser()
     {
         // Ensure the user is authenticated
@@ -130,8 +164,5 @@ class ResumeController extends Controller
             'message' => 'Resumes retrieved successfully.',
             'resumes' => $resumes,
         ], 200);
-
     }
-
-
 }
