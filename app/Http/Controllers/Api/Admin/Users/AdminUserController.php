@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Resources\ProfileResource;
 use Illuminate\Support\Facades\Validator;
 
 class AdminUserController extends Controller
@@ -169,81 +170,77 @@ class AdminUserController extends Controller
 
     public function getUsersByRole(Request $request)
     {
-        // Validate the request parameters
-        $request->validate([
-            'search' => 'nullable|string', // Global search term (name, email, phone_number)
-            'role' => 'nullable|in:EMPLOYEE,EMPLOYER', // Filter by profile_type
-            'service' => 'nullable|integer', // Filter by preferred_job_title
-            'per_page' => 'nullable|integer|min:1', // Pagination limit
-        ]);
-    
-        // Get the search parameter for global search
-        $searchQuery = $request->query('search');
-    
-        // Get the role parameter (optional)
-        $role = $request->query('role'); // This corresponds to profile_type in the Profile model
-    
-        // Get the per_page parameter with a default of 10
-        $perPage = $request->query('per_page', 10);
-    
-        // Start the query to retrieve users
-        $query = User::query();
-    
-        // Ensure only users with a profile are retrieved
-        $query->whereHas('profile');
-    
-        // Apply global search filters if a search term is provided
-        if ($searchQuery) {
-            $query->where(function($q) use ($searchQuery) {
-                $q->where('name', 'LIKE', '%' . $searchQuery . '%')
-                  ->orWhere('email', 'LIKE', '%' . $searchQuery . '%')
-                  ->orWhereHas('profile', function($profileQuery) use ($searchQuery) {
-                      $profileQuery->where('phone_number', 'LIKE', '%' . $searchQuery . '%')
-                                   ->orWhere('first_name', 'LIKE', '%' . $searchQuery . '%')
-                                   ->orWhere('last_name', 'LIKE', '%' . $searchQuery . '%');
-                  });
-            });
-        }
-    
-        // Apply role-based filters if a role is provided
-        if ($role) {
-            $query->whereHas('profile', function($profileQuery) use ($role) {
-                $profileQuery->where('profile_type', $role);
-            });
-        }
-    
-        // Ensure only verified users are retrieved
-        $query->whereNotNull('email_verified_at');
-    
-        // Get the service parameter for preferred job title filter (optional)
-        $service = $request->query('service');
-    
-        // Apply preferred_job_title filter if service is provided
-        if ($service) {
-            $query->whereHas('profile', function($profileQuery) use ($service) {
-                $profileQuery->where('preferred_job_title', $service);
-            });
-        }
-    
-        // Retrieve the users with eager loading and pagination
-        $users = $query->with([
-            'profile', // Load the profile relationship
-            'languages',
-            'certifications',
-            'skills',
-            'education',
-            'employmentHistory',
-            'resume',
-            'thumbnail',
-            'servicesLookingFor'
-        ])->paginate($perPage);
-        UserResource::collection($users);
-    
-        // Build response using jsonResponse
-        return jsonResponse(true, 'Users retrieved successfully.', $users);
-    }
+            // Validate the request parameters
+            $request->validate([
+                'search' => 'nullable|string', // Global search term (name, email, phone_number)
+                'role' => 'nullable|in:EMPLOYEE,EMPLOYER', // Filter by profile_type
+                'service' => 'nullable|integer', // Filter by preferred_job_title
+                'per_page' => 'nullable|integer|min:1', // Pagination limit
+            ]);
 
+            // Get the search parameter for global search
+            $searchQuery = $request->query('search');
 
+            // Get the role parameter (optional)
+            $role = $request->query('role'); // This corresponds to profile_type in the Profile model
+
+            // Get the per_page parameter with a default of 10
+            $perPage = $request->query('per_page', 10);
+
+            // Start the query to retrieve profiles
+            $query = Profile::query();
+
+            // Ensure only profiles with a verified user are retrieved
+            $query->whereHas('user', function ($userQuery) {
+                $userQuery->whereNotNull('email_verified_at');
+            });
+
+            // Apply global search filters if a search term is provided
+            if ($searchQuery) {
+                $query->where(function ($q) use ($searchQuery) {
+                    $q->where('first_name', 'LIKE', '%' . $searchQuery . '%')
+                      ->orWhere('last_name', 'LIKE', '%' . $searchQuery . '%')
+                      ->orWhere('phone_number', 'LIKE', '%' . $searchQuery . '%')
+                      ->orWhereHas('user', function ($userQuery) use ($searchQuery) {
+                          $userQuery->where('email', 'LIKE', '%' . $searchQuery . '%')
+                                    ->orWhere('name', 'LIKE', '%' . $searchQuery . '%');
+                      });
+                });
+            }
+
+            // Apply role-based filters if a role is provided
+            if ($role) {
+                $query->where('profile_type', $role);
+            }
+
+            // Get the service parameter for preferred job title filter (optional)
+            $service = $request->query('service');
+
+            // Apply preferred_job_title filter if service is provided
+            if ($service) {
+                $query->where('preferred_job_title', $service);
+            }
+
+            // Retrieve the profiles with eager loading and pagination
+            $profiles = $query->with([
+                'user', // Load the user relationship
+                'user.languages',
+                'user.certifications',
+                'user.skills',
+                'user.education',
+                'user.employmentHistory',
+                'user.resume',
+                'user.thumbnail',
+                'user.servicesLookingFor'
+            ])->paginate($perPage);
+
+            // Use ProfileResource to format the response
+            // $profilesResource = ProfileResource::collection($profiles);
+            ProfileResource::collection($profiles);
+
+            // Build response using jsonResponse
+            return jsonResponse(true, 'Profiles retrieved successfully.', $profiles);
+        }
 
 
 
