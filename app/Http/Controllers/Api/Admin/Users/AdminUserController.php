@@ -167,7 +167,6 @@ class AdminUserController extends Controller
     }
 
 
-
     public function getUsersByRole(Request $request)
     {
         // Validate the request parameters
@@ -177,19 +176,22 @@ class AdminUserController extends Controller
             'service' => 'nullable|integer', // Filter by preferred_job_title
             'per_page' => 'nullable|integer|min:1', // Pagination limit
         ]);
-
+    
         // Get the search parameter for global search
         $searchQuery = $request->query('search');
-
+    
         // Get the role parameter (optional)
         $role = $request->query('role'); // This corresponds to profile_type in the Profile model
-
+    
         // Get the per_page parameter with a default of 10
         $perPage = $request->query('per_page', 10);
-
+    
         // Start the query to retrieve users
         $query = User::query();
-
+    
+        // Ensure only users with a profile are retrieved
+        $query->whereHas('profile');
+    
         // Apply global search filters if a search term is provided
         if ($searchQuery) {
             $query->where(function($q) use ($searchQuery) {
@@ -202,27 +204,27 @@ class AdminUserController extends Controller
                   });
             });
         }
-
+    
         // Apply role-based filters if a role is provided
         if ($role) {
             $query->whereHas('profile', function($profileQuery) use ($role) {
                 $profileQuery->where('profile_type', $role);
             });
         }
-
+    
         // Ensure only verified users are retrieved
         $query->whereNotNull('email_verified_at');
-
+    
         // Get the service parameter for preferred job title filter (optional)
         $service = $request->query('service');
-
+    
         // Apply preferred_job_title filter if service is provided
         if ($service) {
             $query->whereHas('profile', function($profileQuery) use ($service) {
                 $profileQuery->where('preferred_job_title', $service);
             });
         }
-
+    
         // Retrieve the users with eager loading and pagination
         $users = $query->with([
             'profile', // Load the profile relationship
@@ -235,10 +237,8 @@ class AdminUserController extends Controller
             'thumbnail',
             'servicesLookingFor'
         ])->paginate($perPage);
-
-         UserResource::collection($users);
-
-
+        UserResource::collection($users);
+    
         // Build response using jsonResponse
         return jsonResponse(true, 'Users retrieved successfully.', $users);
     }
