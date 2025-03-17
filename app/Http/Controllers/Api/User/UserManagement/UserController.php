@@ -10,6 +10,7 @@ use App\Models\Profile;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Resources\ProfileResource;
@@ -459,7 +460,7 @@ class UserController extends Controller
        return response()->json([
            'success' => true,
            'message' => 'User retrieved successfully.',
-           'data' => $user,  // All attributes are now part of the $user object
+           'data' => new UserResource($user),  // All attributes are now part of the $user object
        ], 200);
    }
 
