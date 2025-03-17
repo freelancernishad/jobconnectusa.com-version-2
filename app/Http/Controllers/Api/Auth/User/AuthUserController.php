@@ -15,6 +15,7 @@ use App\Models\TokenBlacklist;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -298,13 +299,8 @@ class AuthUserController extends Controller
                 return response()->json(['message' => 'Token is invalid or user not found.'], 401);
             }
 
-            $payload = [
-                'email' => $user->email,
-                'name' => $user->name,
-                'email_verified' => $user->hasVerifiedEmail(), // Checks verification status
-            ];
 
-            return response()->json(['message' => 'Token is valid.','user'=>$payload], 200);
+            return response()->json(['message' => 'Token is valid.','user'=>new UserResource($user)], 200);
         } catch (\Tymon\JWTAuth\Exceptions\TokenExpiredException $e) {
             return response()->json(['message' => 'Token has expired.'], 401);
         } catch (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
