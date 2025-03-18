@@ -18,6 +18,7 @@ class UserResource extends JsonResource
             // Profile details (pulled from the User's Profile relationship)
             'id' => $this->id,
             'user_id' => optional($this->profile)->user_id,
+            'username' => $this->username,
             'email' => $this->email,
             'email_verified' => $this->hasVerifiedEmail(),
             'email_verified_at' => $this->email_verified_at,

@@ -18,6 +18,7 @@ class ProfileResource extends JsonResource
             // Profile details
             'id' => $this->id,
             'user_id' => $this->user_id,
+            'username' => $this->user->username,
             'email' => $this->user->email,
             'email_verified_at' => $this->user->email_verified_at,
             'email_verified' => $this->user->hasVerifiedEmail(),
