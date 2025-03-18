@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Global\ServiceController;
+use App\Http\Controllers\Api\Global\ServiceController;
 use App\Http\Controllers\Api\Global\SkillListController;
 use App\Http\Controllers\Api\Global\GlobalUserController;
 use App\Http\Controllers\Api\Server\ServerStatusController;
