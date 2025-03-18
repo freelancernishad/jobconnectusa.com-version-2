@@ -52,6 +52,7 @@ class UserResource extends JsonResource
             'education' => EducationResource::collection($this->whenLoaded('education')),
             'employment_history' => EmploymentHistoryResource::collection($this->whenLoaded('employmentHistory')),
             'looking_services' => LookingServiceResource::collection($this->whenLoaded('lookingServices')),
+            'services_looking_for' => LookingServiceResource::collection($this->whenLoaded('servicesLookingFor')),
         ];
     }
 
