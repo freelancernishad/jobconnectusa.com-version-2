@@ -23,7 +23,7 @@ class CreateProfilesTable extends Migration
             $table->date('date_of_birth')->nullable();
             $table->string('profile_picture')->nullable();
             $table->string('preferred_job_title')->nullable();
-            $table->boolean('is_other_preferred_job_title')->default(false);
+            $table->boolean('is_other_preferred_job_title')->nullable()->default(false);
             $table->text('company_name')->nullable();
             $table->text('description')->nullable();
             $table->string('preferred_work_state')->nullable();
@@ -33,7 +33,7 @@ class CreateProfilesTable extends Migration
             $table->boolean('activation_payment_made')->default(false);
             $table->boolean('activation_payment_cancel')->default(false);
             $table->text('your_experience')->nullable();
-            $table->boolean('familiar_with_safety_protocols')->default(false);
+            $table->boolean('familiar_with_safety_protocols')->nullable()->default(false);
             $table->string('resume')->nullable();
             $table->string('status')->default('inactive'); // Add status
             $table->string('step')->nullable(); // Add step
