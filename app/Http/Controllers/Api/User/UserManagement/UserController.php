@@ -422,7 +422,7 @@ class UserController extends Controller
                        'education',
                        'employmentHistory',
                        'resume',
-                        'userLookingServices',
+                        'lookingServices',
                        'thumbnail'
                    ])
                    ->first();
