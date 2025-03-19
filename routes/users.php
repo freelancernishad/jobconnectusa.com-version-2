@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\User\Media\MediaController;
 use App\Http\Controllers\Api\Admin\Job\JobApplyController;
 use App\Http\Controllers\Api\Auth\User\AuthUserController;
 use App\Http\Controllers\Api\User\Resume\ResumeController;
-use App\Http\Controllers\Global\BrowsingHistoryController;
+use App\Http\Controllers\Api\Global\BrowsingHistoryController;
 use App\Http\Controllers\Api\Auth\User\VerificationController;
 use App\Http\Controllers\Api\User\Thumbnail\ThumbnailController;
 use App\Http\Controllers\Api\User\UserManagement\UserController;
