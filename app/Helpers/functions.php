@@ -7,6 +7,7 @@ use App\Models\Profile;
 use App\Models\TokenBlacklist;
 use App\Models\BrowsingHistory;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Resources\ProfileResource;
 use Illuminate\Support\Facades\Validator;
 
 function TokenBlacklist($token){
@@ -158,6 +159,7 @@ function getRandomActiveUsers()
         ->inRandomOrder()  // Randomize the order
         ->take(4)  // Limit to 4 users
         ->get();
+        ProfileResource::collection($randomActiveUsers);
 
     // Return the random active users or an empty array if no users are found
     return $randomActiveUsers->isNotEmpty() ? $randomActiveUsers->toArray() : [];

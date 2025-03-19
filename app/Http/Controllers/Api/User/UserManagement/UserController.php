@@ -521,6 +521,7 @@ class UserController extends Controller
            ], 200);
        }
 
+       ProfileResource::collection($employees);
        return response()->json([
            'success' => true,
            'message' => 'Employees retrieved successfully.',
