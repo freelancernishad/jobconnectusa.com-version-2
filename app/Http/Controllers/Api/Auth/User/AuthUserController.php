@@ -142,31 +142,44 @@ class AuthUserController extends Controller
     if (Auth::attempt($credentials)) {
         $user = Auth::user();
 
-        // Update active_profile based on role
-        if ($request->role === 'EMPLOYEE') {
-            $user->active_profile = 'EMPLOYEE';
-        } elseif ($request->role === 'EMPLOYER') {
-            $user->active_profile = 'EMPLOYER';
+        // If user email is not verified, send OTP and return error
+        if (!$user->hasVerifiedEmail()) {
+            $otp = random_int(100000, 999999);
+            $user->otp = Hash::make($otp);
+            $user->otp_expires_at = now()->addMinutes(5);
+            $user->save();
+
+            // Send OTP via email
+            Mail::to($user->email)->send(new OtpNotification($user, $otp));
+
+            // return response()->json([
+            //     'message' => 'Your email is not verified. An OTP has been sent to your email.',
+            //     'otp_required' => true
+            // ], 403);
         }
 
+        // Update active_profile based on role
+        $user->active_profile = $request->role;
 
         // Determine the step based on the active profile
         $step = 1;
-        $checkProfile = Profile::where(['user_id'=>$user->id,'profile_type'=>$user->active_profile])->first();
-
-        // return response()->json($checkProfile);
+        $checkProfile = Profile::where([
+            'user_id' => $user->id,
+            'profile_type' => $user->active_profile
+        ])->first();
 
         if ($checkProfile) {
             $step = (int)$checkProfile->step;
             $user->active_profile_id = $checkProfile->id;
             $checkProfileStatus = $checkProfile->status;
-        }else{
-            $active_profile_id = null;
-            $user->active_profile_id = $active_profile_id;
+        } else {
+            $user->active_profile_id = null;
             $checkProfileStatus = 'inactive';
         }
+
         $user->save();
-        // Custom payload data, including email verification status
+
+        // Custom payload data
         $payload = [
             'username' => $user->username,
             'email' => $user->email,
@@ -179,7 +192,7 @@ class AuthUserController extends Controller
         ];
 
         try {
-            // Generate a JWT token with custom claims
+            // Generate JWT token
             $token = JWTAuth::fromUser($user, ['guard' => 'user']);
         } catch (JWTException $e) {
             return response()->json(['error' => 'Could not create token'], 500);
@@ -193,6 +206,7 @@ class AuthUserController extends Controller
 
     return response()->json(['message' => 'Invalid credentials'], 401);
 }
+
 
 
 
