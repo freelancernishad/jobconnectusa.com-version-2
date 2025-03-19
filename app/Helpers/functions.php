@@ -159,8 +159,7 @@ function getRandomActiveUsers()
         ->inRandomOrder()  // Randomize the order
         ->take(4)  // Limit to 4 users
         ->get();
-        ProfileResource::collection($randomActiveUsers);
 
-    // Return the random active users or an empty array if no users are found
-    return $randomActiveUsers->isNotEmpty() ? $randomActiveUsers->toArray() : [];
+    // Transform the collection into ProfileResource collection and return it
+    return ProfileResource::collection($randomActiveUsers);
 }
