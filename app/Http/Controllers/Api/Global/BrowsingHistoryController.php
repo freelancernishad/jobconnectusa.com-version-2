@@ -19,10 +19,13 @@ class BrowsingHistoryController extends Controller
         // Get recently viewed users by this user, sorted by how recently they were viewed, only active ones, and with role "EMPLOYEE"
         $recentlyViewedUsers = BrowsingHistory::where('user_id', $userId)
             ->with(['viewedUser' => function ($query) use ($userId) {
-                $query->where('status', 'active')  // Fetch only active users
-                    ->where('role', 'EMPLOYEE')    // Fetch only users with role "EMPLOYEE"
-                    ->where('id', '!=', $userId)   // Exclude the current authenticated user
-                    ->with(['thumbnail']);
+                $query->whereHas('profile', function ($query) {
+                    $query->where('status', 'active')
+                    ->where('profile_type', 'EMPLOYEE');
+                })
+
+                ->where('id', '!=', $userId)
+                ->with(['thumbnail']);
             }])
             ->orderBy('viewed_at', 'desc')
             ->take(10)  // Limit to 10 recently viewed users
@@ -35,7 +38,8 @@ class BrowsingHistoryController extends Controller
         // Apply pagination if requested
         if ($request->has('per_page')) {
             $perPage = (int) $request->get('per_page');
-            $finalRecommendations = $recentlyViewedUsers->forPage(1, $perPage);  // Paginate the collection manually
+            // Paginate the collection manually
+            $finalRecommendations = $recentlyViewedUsers->forPage($request->get('page', 1), $perPage);
         }
         // Apply limit if requested
         elseif ($request->has('limit')) {
@@ -54,6 +58,7 @@ class BrowsingHistoryController extends Controller
             'data' => $finalRecommendations->isNotEmpty() ? $finalRecommendations->toArray() : getRandomActiveUsers(),
         ]);
     }
+
 
 
 
