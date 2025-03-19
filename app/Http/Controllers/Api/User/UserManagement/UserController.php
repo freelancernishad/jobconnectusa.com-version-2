@@ -471,17 +471,20 @@ class UserController extends Controller
 
    public function getEmployeesYouMayLike(Request $request)
    {
-       // Get the logged-in user (employer)
-       $user = auth()->user();
+        // Get the logged-in user (employer)
+        $user = auth()->user();
 
-       // Ensure the user is an employer
-       if (!$user || $user->role !== 'EMPLOYER') {
-           return response()->json([
-               'success' => false,
-               'message' => 'User must be an employer.',
-               'data' => null,
-           ], 403);
-       }
+        // Check if the user has both EMPLOYER and EMPLOYEE profiles
+        $employerProfile = $user->profile()->where('profile_type', 'EMPLOYER')->first();
+
+        // Ensure the user has a valid employer profile
+        if (!$employerProfile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User must have a valid EMPLOYER profile.',
+                'data' => null,
+            ], 403);
+        }
 
        // Get the employer's preferred job titles (services they're looking for)
        $lookingServiceIds = $user->lookingServices->pluck('service_id')->toArray(); // Extract service_id values
@@ -498,23 +501,25 @@ class UserController extends Controller
        // Get per_page from request, if not provided default to 10
        $perPage = $request->get('per_page', 10);
 
-       // Find all employees whose preferred_job_title matches any of the employer's looking services and are active
-       $employees = User::where('role', 'EMPLOYEE')
-           ->whereIn('preferred_job_title', $lookingServiceIds) // Handle multiple services
-           ->where('status', 'active') // Only active employees
-           ->where('id', '!=', $user->id) // Exclude the logged-in user (employer)
-           ->with('thumbnail') // Include thumbnail relationship if exists
+       // Find all profiles with 'EMPLOYEE' type whose preferred job title matches any of the employer's looking services and are active
+       $employees = Profile::where('profile_type', 'EMPLOYEE') // Only EMPLOYEE profiles
+           ->whereIn('preferred_job_title', $lookingServiceIds) // Ensure matching preferred job title
+           ->where('status', 'active') // Only active profiles
+           ->whereHas('user', function ($query) use ($user) {
+               $query->where('id', '!=', $user->id); // Exclude the logged-in user (employer)
+           })
+           ->with(['user', 'user.thumbnail']) // Include user details and thumbnail relationship
            ->paginate($perPage); // Apply pagination with per_page value
 
-    //    // Check if no employees were found
-    //    if ($employees->isEmpty()) {
-    //        // Return random active users if no employees match the criteria
-    //        return response()->json([
-    //            'success' => true,
-    //            'message' => 'No matching employees found, returning random active users.',
-    //            'data' => getRandomActiveUsers(),
-    //        ], 200);
-    //    }
+       // Check if no employees were found
+       if ($employees->isEmpty()) {
+           // Optionally, return random active users if no employees match the criteria
+           return response()->json([
+               'success' => true,
+               'message' => 'No matching employees found, returning random active users.',
+               'data' => getRandomActiveUsers(),
+           ], 200);
+       }
 
        return response()->json([
            'success' => true,
