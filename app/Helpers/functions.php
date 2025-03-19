@@ -3,6 +3,7 @@
 use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Payment;
+use App\Models\Profile;
 use App\Models\TokenBlacklist;
 use App\Models\BrowsingHistory;
 use Illuminate\Support\Facades\Auth;
@@ -145,4 +146,19 @@ function logBrowsingHistory($viewedUserId)
         'viewed_user_id' => $viewedUserId, // The user being viewed
         'viewed_at' => now(),
     ]);
+}
+
+
+function getRandomActiveUsers()
+{
+    // Fetch 4 random users where the status is 'active' and the profile is of type 'EMPLOYEE'
+    $randomActiveUsers = Profile::where('status', 'active')  // Profile status is 'active'
+        ->where('profile_type', 'EMPLOYEE')  // Filter by 'EMPLOYEE' profile type
+        ->with(['user.thumbnail'])  // Load user data and thumbnail relationship
+        ->inRandomOrder()  // Randomize the order
+        ->take(4)  // Limit to 4 users
+        ->get();
+
+    // Return the random active users or an empty array if no users are found
+    return $randomActiveUsers->isNotEmpty() ? $randomActiveUsers->toArray() : [];
 }
