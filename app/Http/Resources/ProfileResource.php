@@ -38,7 +38,7 @@ class ProfileResource extends JsonResource
             'your_experience' => $this->your_experience,
             'familiar_with_safety_protocols' => $this->familiar_with_safety_protocols,
             'resume' => $this->resume,
-            'step' => $this->step,
+            'step' => $this->step ?? 1,
             'status' => $this->status,
             'profile_type' => $this->profile_type,
             'active_profile' => $this->user->active_profile,

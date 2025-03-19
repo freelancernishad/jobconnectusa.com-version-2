@@ -38,7 +38,7 @@ class UserResource extends JsonResource
             'your_experience' => optional($this->profile)->your_experience,
             'familiar_with_safety_protocols' => optional($this->profile)->familiar_with_safety_protocols,
             'resume' => optional($this->profile)->resume,
-            'step' => optional($this->profile)->step,
+            'step' => optional($this->profile)->step ?? 1,
             'status' => optional($this->profile)->status,
             'profile_type' => optional($this->profile)->profile_type,
             'active_profile' => $this->active_profile,
